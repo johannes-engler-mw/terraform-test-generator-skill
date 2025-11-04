@@ -19,11 +19,5 @@
     "aws",
     "azure",
     "gcp"
-  ],
-  "skills": [
-    {
-      "name": "terraform-test-generator",
-      "file": "skills/terraform-test-generator/skill.md"
-    }
   ]
 }
