@@ -1,0 +1,21 @@
+{
+  "name": "terraform-test-generator",
+  "version": "1.0.0",
+  "description": "Generate comprehensive Terraform test cases including unit tests, integration tests, mocks, and coverage reports",
+  "author": "Johannes Engler",
+  "homepage": "https://github.com/johannes-engler/terraform-test-generator-skill",
+  "license": "MIT",
+  "keywords": [
+    "terraform",
+    "testing",
+    "infrastructure",
+    "iac",
+    "hashicorp",
+    "unit-tests",
+    "integration-tests",
+    "mocking",
+    "aws",
+    "azure",
+    "gcp"
+  ]
+}

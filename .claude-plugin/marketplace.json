@@ -1,0 +1,13 @@
+{
+  "name": "terraform-test-generator-skill",
+  "owner": {
+    "name": "Johannes Engler"
+  },
+  "plugins": [
+    {
+      "name": "terraform-test-generator",
+      "source": ".",
+      "description": "Generate comprehensive Terraform test cases including unit tests, integration tests, mocks, and coverage reports. Supports AWS, Azure, and GCP with built-in best practices and anti-pattern detection."
+    }
+  ]
+}
