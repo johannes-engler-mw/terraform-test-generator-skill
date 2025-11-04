@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "terraform-test-generator",
-      "source": ".",
+      "source": "./",
       "description": "Generate comprehensive Terraform test cases including unit tests, integration tests, mocks, and coverage reports. Supports AWS, Azure, and GCP with built-in best practices and anti-pattern detection."
     }
   ]
