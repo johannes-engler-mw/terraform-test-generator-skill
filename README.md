@@ -51,16 +51,19 @@ Then install the plugin:
 ### Manual Installation
 
 1. Clone this repository:
+
    ```bash
    git clone https://github.com/johannes-engler/terraform-test-generator-skill.git
    ```
 
 2. Add the marketplace locally:
+
    ```bash
    /plugin marketplace add ./terraform-test-generator-skill
    ```
 
 3. Install the plugin:
+
    ```bash
    /plugin install terraform-test-generator
    ```
@@ -74,6 +77,7 @@ Once installed, invoke the skill in Claude Code:
 ```
 
 The skill will guide you through an interactive process to:
+
 - Understand your Terraform module structure
 - Identify cloud providers in use
 - Determine test coverage requirements
@@ -83,18 +87,21 @@ The skill will guide you through an interactive process to:
 ## Supported Cloud Providers
 
 ### AWS
+
 - Resource mocking patterns
 - Data source handling
 - IAM policy testing
 - Best practices for AWS-specific resources
 
 ### Azure
+
 - UUID handling for Azure resources
 - Subscription and resource group patterns
 - Azure-specific validation tests
 - Best practices for Azure resources
 
 ### GCP
+
 - Project ID management
 - GCP-specific mocking patterns
 - Service account handling
@@ -103,26 +110,31 @@ The skill will guide you through an interactive process to:
 ## Test Types Generated
 
 ### Unit Tests
+
 - Fast, isolated tests using mock providers
 - No real infrastructure created
 - Focus on Terraform logic and expressions
 
 ### Integration Tests
+
 - Real provider interactions
 - Validates actual resource creation
 - Includes cost warnings and safety checks
 
 ### Mock Tests
+
 - Override files for data sources
 - External dependency simulation
 - Safe testing without real resources
 
 ### Validation Tests
+
 - Input variable validation
 - Output value verification
 - Edge case handling
 
 ### Compliance Tests
+
 - Security policy enforcement
 - Tagging requirements
 - Resource naming conventions
@@ -131,14 +143,18 @@ The skill will guide you through an interactive process to:
 ## Key Features
 
 ### Anti-Pattern Detection
+
 The skill includes comprehensive anti-pattern documentation covering:
+
 - Resource naming conflicts
 - Missing provider blocks in tests
 - Incorrect mock provider usage
 - Data source misconfigurations
 
 ### Verification Checklist
+
 Quality gates ensure:
+
 - Proper test structure
 - Correct provider configuration
 - Valid HCL syntax
@@ -146,6 +162,7 @@ Quality gates ensure:
 - Documentation completeness
 
 ### Cost and Safety Awareness
+
 - Warns about integration test costs
 - Provides cleanup guidance
 - Includes safety checks for destructive operations
@@ -197,14 +214,15 @@ your-module/
 │   ├── basic_unit_test.tftest.hcl
 │   ├── full_deployment_integration.tftest.hcl
 │   ├── data_sources.tfmock.hcl
-│   └── input_validation.tftest.hcl
-├── COVERAGE.md
-└── README.md
+│   ├── input_validation.tftest.hcl
+│   ├── README.md
+│   └── COVERAGE.md
 ```
 
 ## Best Practices
 
 The skill enforces HashiCorp's official best practices:
+
 - Proper test file naming conventions
 - Correct use of mock providers
 - Appropriate test isolation
@@ -213,8 +231,8 @@ The skill enforces HashiCorp's official best practices:
 
 ## Credits
 
-This skill is based on the original work by [Dharani Sowndharya](https://github.com/dharani-sowndharya/terraform-test-mcp). The original repository can be found at:
-https://github.com/dharani-sowndharya/terraform-test-mcp
+This skill is based on the original work by [Dharani Sowndharya](https://github.com/dharani-sowndharya). The original repository can be found at:
+<https://github.com/dharani-sowndharya/terraform-test-mcp>
 
 ## Contributing
 
