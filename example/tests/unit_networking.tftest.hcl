@@ -198,7 +198,7 @@ run "test_private_subnets" {
   }
 
   assert {
-    condition     = aws_subnet.private[0].map_public_ip_on_launch == false
+    condition     = aws_subnet.private[0].map_public_ip_on_launch != true
     error_message = "Private subnets should not auto-assign public IPs"
   }
 

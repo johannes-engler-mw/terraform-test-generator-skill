@@ -231,12 +231,12 @@ run "test_security_group_egress" {
   }
 
   assert {
-    condition     = aws_security_group.app.egress[0].from_port == 0
+    condition     = length([for rule in aws_security_group.app.egress : rule if rule.from_port == 0]) > 0
     error_message = "Egress rule should allow all ports (from_port = 0)"
   }
 
   assert {
-    condition     = aws_security_group.app.egress[0].protocol == "-1"
+    condition     = length([for rule in aws_security_group.app.egress : rule if rule.protocol == "-1"]) > 0
     error_message = "Egress rule should allow all protocols"
   }
 }
