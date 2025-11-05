@@ -10,14 +10,23 @@
   "keywords": [
     "terraform",
     "testing",
+    "test-generation",
+    "terraform-test",
     "infrastructure",
     "iac",
     "hashicorp",
     "unit-tests",
     "integration-tests",
+    "mock-providers",
     "mocking",
+    "terratest-alternative",
     "aws",
     "azure",
-    "gcp"
+    "gcp",
+    "multi-cloud",
+    "tftest",
+    "test-automation",
+    "compliance-testing",
+    "validation"
   ]
 }

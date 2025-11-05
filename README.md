@@ -171,7 +171,7 @@ Quality gates ensure:
 ## Repository Structure
 
 ```
-terraform-test-skill/
+terraform-test-generator-skill/
 ├── .claude-plugin/
 │   ├── plugin.json           # Plugin metadata
 │   └── marketplace.json      # Marketplace configuration

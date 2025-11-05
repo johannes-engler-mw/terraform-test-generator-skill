@@ -2,7 +2,7 @@
 skill_name: Terraform Test Generator
 description: Generate comprehensive Terraform test cases including unit tests, integration tests, mocks, and coverage reports
 trigger: Use when the user asks to test, validate, or verify Terraform code, or mentions "terraform tests", "test suite", "test cases", "unit tests", "integration tests", "write tests", "add tests", or similar testing requests
-version: 3.1.0
+version: 1.0.0
 ---
 
 # Terraform Test Case Generator

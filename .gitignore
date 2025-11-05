@@ -1,0 +1,60 @@
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Terraform Files (if testing the skill locally)
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate.d/
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Test Output
+tests/*.log
+tests/results/
+*.test
+
+# Temporary Files
+*.tmp
+*.bak
+*.backup
+.cache/
+
+# Node modules (if any JavaScript tooling is added)
+node_modules/
+
+# Python virtual environments (if any Python tooling is added)
+venv/
+env/
+*.pyc
+__pycache__/
+
+# Log files
+*.log
+
+# Archive files
+*.zip
+*.tar.gz
+*.tgz
