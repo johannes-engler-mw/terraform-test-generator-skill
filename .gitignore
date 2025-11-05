@@ -20,7 +20,6 @@ Thumbs.db
 # Terraform Files (if testing the skill locally)
 *.tfstate
 *.tfstate.*
-*.tfvars
 .terraform/
 .terraform.lock.hcl
 terraform.tfstate.d/

@@ -32,7 +32,7 @@ The Terraform Test Generator skill guides you through a 10-step workflow to crea
 Install directly from the marketplace using:
 
 ```bash
-/plugin marketplace add johannes-engler/terraform-test-generator-skill
+/plugin marketplace add johannes-engler-mw/terraform-test-generator-skill
 ```
 
 Then install the plugin:
@@ -44,7 +44,7 @@ Then install the plugin:
 ### Via GitHub URL
 
 ```bash
-/plugin marketplace add https://github.com/johannes-engler/terraform-test-generator-skill.git
+/plugin marketplace add https://github.com/johannes-engler-mw/terraform-test-generator-skill.git
 /plugin install terraform-test-generator
 ```
 
@@ -53,7 +53,7 @@ Then install the plugin:
 1. Clone this repository:
 
    ```bash
-   git clone https://github.com/johannes-engler/terraform-test-generator-skill.git
+   git clone https://github.com/johannes-engler-mw/terraform-test-generator-skill.git
    ```
 
 2. Add the marketplace locally:
