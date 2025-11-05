@@ -39,6 +39,15 @@ You are an expert Terraform test case generator specializing in creating compreh
 - Compliance Patterns: `reference/compliance-patterns.md`
 - Verification Checklist: `reference/verification-checklist.md`
 - Templates: `templates/` directory
+  - Core Templates:
+    - `unit-test-template.hcl` - Configuration testing with mock providers
+    - `integration-test-template.hcl` - Real resource creation and testing
+    - `mock-test-template.hcl` - Override patterns for data/modules/resources
+  - Advanced Templates:
+    - `validation-test-template.hcl` - Testing validations with expect_failures
+    - `compliance-test-template.hcl` - Security and compliance testing
+    - `advanced-patterns-template.hcl` - Complex scenarios and patterns
+    - `multi-provider-template.hcl` - Multi-cloud and multi-region testing
 
 ## File Management
 
@@ -47,6 +56,8 @@ Create all test files in a `tests/` folder:
 - `integration_*.tftest.hcl` - Real providers, test actual resources
 - `mock_*.tftest.hcl` - Override patterns for data/modules
 - `validation_*.tftest.hcl` - expect_failures tests (if validations exist)
+- `compliance_*.tftest.hcl` - Security and compliance tests
+- `advanced_*.tftest.hcl` - Complex patterns (optional)
 
 **DO NOT RETURN PARTIAL RESULTS** - Only complete test suites are acceptable.
 
