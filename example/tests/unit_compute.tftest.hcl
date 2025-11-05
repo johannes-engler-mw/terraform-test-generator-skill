@@ -168,11 +168,11 @@ run "test_ec2_instance_custom_ami" {
     instance_type    = "t3.micro"
     root_volume_size = 30
     kms_key_id       = ""
-    ami_id           = "ami-custom12345"
+    ami_id           = "ami-0a1b2c3d4e5f6789"
   }
 
   assert {
-    condition     = aws_instance.app[0].ami == "ami-custom12345"
+    condition     = aws_instance.app[0].ami == "ami-0a1b2c3d4e5f6789"
     error_message = "EC2 instance should use custom AMI when provided"
   }
 }
