@@ -24,14 +24,15 @@ The skill includes 7 test templates covering everything from basic unit tests to
 /plugin marketplace add https://github.com/johannes-engler-mw/terraform-test-generator-skill.git
 /plugin install terraform-test-generator
 
-# Or manually (clone first, then add local path)
-/plugin marketplace add ./terraform-test-generator-skill
-/plugin install terraform-test-generator
+# Or manually (clone first, then copy to your home directory)
+git clone https://github.com/johannes-engler-mw/terraform-test-generator-skill.git
+mkdir -p ~/.claude/skills
+cp -r terraform-test-generator-skill/skills/terraform-test-generator/ ~/.claude/skills
 ```
 
 ## Usage
 
-Ask Claude to create Terraform tests in natural language or force the usage by directly mentioning the skill name **terraform-test-generator** in your request.
+Ask Claude to create Terraform tests in natural language or force its usage by directly mentioning the skill name **terraform-test-generator** in your request.
 
 The skill will analyze your Terraform module, identify providers, and generate appropriate test files with documentation.
 
