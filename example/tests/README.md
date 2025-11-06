@@ -57,19 +57,19 @@ terraform test
 
 ```bash
 # Unit tests only (safe, fast, free)
-terraform test -filter=unit_*
+terraform test tests/unit_*.tftest.hcl
 
 # Mock tests only (safe, free)
-terraform test -filter=mock_*
+terraform test tests/mock_*.tftest.hcl
 
 # Validation tests only (safe, free)
-terraform test -filter=validation_*
+terraform test tests/validation_*.tftest.hcl
 
 # Compliance tests only (safe, free)
-terraform test -filter=compliance_*
+terraform test tests/compliance_*.tftest.hcl
 
 # Integration tests (WARNING: creates real resources)
-terraform test -filter=integration_*
+terraform test tests/integration_*.tftest.hcl
 ```
 
 ### Run a Specific Test File
@@ -135,7 +135,7 @@ Integration tests use `command = apply` and will:
 - Run unit/mock/validation/compliance tests regularly (they're FREE)
 - Run integration tests before major deployments only
 - Verify resources are cleaned up after each test
-- Use `terraform test -filter=unit_* -filter=compliance_*` for regular testing
+- Use `terraform test tests/{unit,mock,validation,compliance}_*.tftest.hcl` for regular testing
 
 ❌ **DON'T**:
 - Run integration tests in production AWS accounts
@@ -190,16 +190,16 @@ test:
 
     # Safe tests (free, no AWS credentials needed)
     - name: Run unit tests
-      run: terraform test -filter=unit_*
+      run: terraform test tests/unit_*.tftest.hcl
 
     - name: Run mock tests
-      run: terraform test -filter=mock_*
+      run: terraform test tests/mock_*.tftest.hcl
 
     - name: Run validation tests
-      run: terraform test -filter=validation_*
+      run: terraform test tests/validation_*.tftest.hcl
 
     - name: Run compliance tests
-      run: terraform test -filter=compliance_*
+      run: terraform test tests/compliance_*.tftest.hcl
 
     # Integration tests (optional, requires AWS credentials)
     - name: Configure AWS Credentials
@@ -211,7 +211,7 @@ test:
 
     - name: Run integration tests
       if: github.ref == 'refs/heads/main'
-      run: terraform test -filter=integration_*
+      run: terraform test tests/integration_*.tftest.hcl
 ```
 
 ## Troubleshooting
