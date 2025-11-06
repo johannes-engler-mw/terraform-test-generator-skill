@@ -31,9 +31,7 @@ The skill includes 7 test templates covering everything from basic unit tests to
 
 ## Usage
 
-```bash
-/skill terraform-test-generator
-```
+Ask Claude to create Terraform tests in natural language or force the usage by directly mentioning the skill name **terraform-test-generator** in your request.
 
 The skill will analyze your Terraform module, identify providers, and generate appropriate test files with documentation.
 
