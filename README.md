@@ -39,10 +39,10 @@ The skill will analyze your Terraform module, identify providers, and generate a
 
 ## Supported Providers
 
-- **AWS**: Resource mocking, data sources, IAM policies
-- **Azure**: UUID handling, subscription/resource group patterns
-- **GCP**: Project ID management, service account handling
-- **Multi-cloud**: Cross-provider and multi-region testing
+- **AWS**
+- **Azure**
+- **GCP**
+- **Multi-cloud**
 
 ## Test Templates
 
@@ -94,7 +94,7 @@ terraform-test-generator-skill/
 
 ## Requirements
 
-- Claude Code
+- Claude Code 1.0 or higher
 - Terraform 1.6.0 or higher
 - Terraform configuration files
 
@@ -136,7 +136,3 @@ MIT License - see [LICENSE](LICENSE) file for details
 ## Support
 
 For issues, questions, or suggestions, please open an issue on GitHub.
-
----
-
-**Note**: This skill generates test code but does not execute Terraform commands. You'll need to run the generated tests using `terraform test` in your environment.
