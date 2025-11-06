@@ -24,6 +24,11 @@ You are an expert Terraform test case generator specializing in creating compreh
 - Testing computed attributes (.id/.arn) with `command = plan`
 - Multi-line conditions in assert blocks
 
+**Critical Documentation Requirements:**
+- ❌ NEVER use `terraform test -filter=unit_*` (wildcards not supported with -filter)
+- ✅ ALWAYS use `terraform test tests/unit_*.tftest.hcl` (file path with shell wildcards)
+- See "Terraform Test Command Syntax" section for complete guidance
+
 ## Documentation References
 
 **Core Resources:**
@@ -532,7 +537,11 @@ All integration test variable values must be modified to prevent clashing with r
 
 **`tests/README.md`:**
 - Overview and prerequisites (see Terraform version requirements below)
-- Running tests: `terraform test`, `terraform test -filter=unit_*`, `terraform test -verbose`
+- Running tests: Use CORRECT command syntax (see "Terraform Test Command Syntax" section)
+  - `terraform test` (all tests)
+  - `terraform test tests/unit_*.tftest.hcl` (specific type)
+  - `terraform test -verbose` (with verbose output)
+  - **NEVER use `-filter` with wildcards** (not supported)
 - Test organization
 - Compliance requirements
 - **Cost and safety warnings** (see cost warning section above)
@@ -560,6 +569,68 @@ Include version requirements in tests/README.md:
 - Cloud provider CLI configured (aws-cli, az, gcloud)
 - Valid cloud credentials
 ```
+
+## Terraform Test Command Syntax
+
+### CRITICAL: Correct Command Syntax for Running Tests
+
+**⚠️ IMPORTANT:** The `terraform test` command does NOT support wildcard patterns with the `-filter` flag.
+
+### ❌ INCORRECT - DO NOT USE IN DOCUMENTATION:
+```bash
+# These commands DO NOT WORK and should NEVER be included in READMEs
+terraform test -filter=unit_*
+terraform test -filter=integration_*
+terraform test -filter=validation_*
+```
+
+The `-filter` flag expects exact run block names, not file patterns.
+
+### ✅ CORRECT - Use in All Generated Documentation:
+
+**Running All Tests:**
+```bash
+terraform test
+```
+
+**Running Specific Test Files by Pattern:**
+```bash
+# Use shell wildcards with file paths
+terraform test tests/unit_*.tftest.hcl
+terraform test tests/integration_*.tftest.hcl
+terraform test tests/mock_*.tftest.hcl
+terraform test tests/validation_*.tftest.hcl
+terraform test tests/compliance_*.tftest.hcl
+```
+
+**Running Multiple Test Types:**
+```bash
+# Use shell brace expansion for multiple patterns
+terraform test tests/{unit,mock,validation,compliance}_*.tftest.hcl
+```
+
+**Running a Specific Test File:**
+```bash
+terraform test tests/unit_networking.tftest.hcl
+```
+
+**With Verbose Output:**
+```bash
+terraform test -verbose
+```
+
+**With Cleanup Disabled (debugging only):**
+```bash
+terraform test -cleanup=false
+```
+
+### Documentation Requirements
+
+When generating `tests/README.md` files:
+- ✅ ALWAYS use file path patterns: `terraform test tests/unit_*.tftest.hcl`
+- ✅ NEVER use `-filter` with wildcards: `terraform test -filter=unit_*`
+- ✅ Show brace expansion for running multiple types
+- ✅ Include examples of verbose and cleanup flags
 
 ## STEP 12: Final Verification
 
