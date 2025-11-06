@@ -4,15 +4,17 @@ A comprehensive Claude Code skill for generating high-quality Terraform test cas
 
 ## Features
 
-- **Comprehensive Test Generation**: Unit tests, integration tests, mock tests, validation tests, and compliance tests
-- **Multi-Cloud Support**: Built-in patterns and best practices for AWS, Azure, and GCP
+- **7 Comprehensive Test Templates**: Core (unit, integration, mock) and advanced (validation, compliance, advanced patterns, multi-provider) templates
+- **Multi-Cloud Support**: Built-in patterns and best practices for AWS, Azure, GCP, and multi-cloud scenarios
 - **Anti-Pattern Detection**: Automatically identifies and avoids common testing pitfalls
+- **Advanced Testing Patterns**: For expressions, dynamic blocks, conditional logic, and complex scenarios
+- **Security & Compliance**: Built-in templates for testing encryption, tagging, network security, and compliance
 - **Built-in Quality Assurance**: Verification checkpoints ensure test reliability
 - **Production-Ready**: Based on HashiCorp's official testing framework and best practices
 
 ## What This Skill Does
 
-The Terraform Test Generator skill guides you through a 10-step workflow to create comprehensive test suites:
+The Terraform Test Generator skill guides you through a comprehensive workflow to create production-ready test suites:
 
 1. Collects requirements with intelligent defaults
 2. Analyzes your Terraform code and detects providers
@@ -21,9 +23,11 @@ The Terraform Test Generator skill guides you through a 10-step workflow to crea
 5. Generates unit tests with proper mock providers
 6. Creates integration tests with real provider interactions
 7. Builds mock tests with override patterns
-8. Generates validation tests for input/output testing
-9. Creates compliance tests based on your requirements
-10. Produces documentation (COVERAGE.md, README.md)
+8. Generates validation tests (expect_failures) when validation blocks exist
+9. Creates compliance tests for security and best practices
+10. Applies advanced patterns for complex scenarios (optional)
+11. Supports multi-cloud testing patterns (optional)
+12. Produces comprehensive documentation (COVERAGE.md, README.md)
 
 ## Installation
 
@@ -140,6 +144,33 @@ The skill will guide you through an interactive process to:
 - Resource naming conventions
 - Cost optimization checks
 
+## Test Templates
+
+The skill includes 7 comprehensive test templates:
+
+### Core Templates
+
+| Template | Purpose | Use Case |
+|----------|---------|----------|
+| **unit-test-template.hcl** | Configuration testing with mock providers | Test Terraform logic without creating resources |
+| **integration-test-template.hcl** | Real resource creation and testing | Verify actual infrastructure creation |
+| **mock-test-template.hcl** | Override patterns for data/modules/resources | Test with mocked external dependencies |
+
+### Advanced Templates
+
+| Template | Purpose | Use Case |
+|----------|---------|----------|
+| **validation-test-template.hcl** | Testing validations with expect_failures | Test variable validations, preconditions, postconditions |
+| **compliance-test-template.hcl** | Security and compliance testing | Test encryption, tagging, network security |
+| **advanced-patterns-template.hcl** | Complex scenarios and patterns | Test dynamic blocks, for expressions, conditional logic |
+| **multi-provider-template.hcl** | Multi-cloud and multi-region testing | Test AWS+Azure, AWS+GCP, multi-region setups |
+
+Each template includes:
+- Comprehensive inline documentation
+- Multiple real-world examples
+- Best practices and anti-pattern avoidance
+- Ready-to-customize code snippets
+
 ## Key Features
 
 ### Anti-Pattern Detection
@@ -179,9 +210,13 @@ terraform-test-generator-skill/
 │   └── terraform-test-generator/
 │       ├── skill.md          # Main skill definition
 │       ├── templates/        # HCL test templates
-│       │   ├── unit-test-template.hcl
-│       │   ├── integration-test-template.hcl
-│       │   └── mock-test-template.hcl
+│       │   ├── unit-test-template.hcl           # Core: Configuration testing
+│       │   ├── integration-test-template.hcl    # Core: Real resource testing
+│       │   ├── mock-test-template.hcl           # Core: Override patterns
+│       │   ├── validation-test-template.hcl     # Advanced: expect_failures
+│       │   ├── compliance-test-template.hcl     # Advanced: Security/compliance
+│       │   ├── advanced-patterns-template.hcl   # Advanced: Complex scenarios
+│       │   └── multi-provider-template.hcl      # Advanced: Multi-cloud
 │       └── reference/        # Best practices and patterns
 │           ├── anti-patterns.md
 │           ├── cloud-providers-aws.md
@@ -191,6 +226,7 @@ terraform-test-generator-skill/
 │           ├── syntax-examples.md
 │           ├── validation-patterns.md
 │           └── verification-checklist.md
+├── example/                  # Example Terraform module with comprehensive tests
 ├── README.md
 └── LICENSE
 ```

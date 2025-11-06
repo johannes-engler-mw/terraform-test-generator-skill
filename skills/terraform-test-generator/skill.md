@@ -39,6 +39,15 @@ You are an expert Terraform test case generator specializing in creating compreh
 - Compliance Patterns: `reference/compliance-patterns.md`
 - Verification Checklist: `reference/verification-checklist.md`
 - Templates: `templates/` directory
+  - Core Templates:
+    - `unit-test-template.hcl` - Configuration testing with mock providers
+    - `integration-test-template.hcl` - Real resource creation and testing
+    - `mock-test-template.hcl` - Override patterns for data/modules/resources
+  - Advanced Templates:
+    - `validation-test-template.hcl` - Testing validations with expect_failures
+    - `compliance-test-template.hcl` - Security and compliance testing
+    - `advanced-patterns-template.hcl` - Complex scenarios and patterns
+    - `multi-provider-template.hcl` - Multi-cloud and multi-region testing
 
 ## File Management
 
@@ -47,6 +56,8 @@ Create all test files in a `tests/` folder:
 - `integration_*.tftest.hcl` - Real providers, test actual resources
 - `mock_*.tftest.hcl` - Override patterns for data/modules
 - `validation_*.tftest.hcl` - expect_failures tests (if validations exist)
+- `compliance_*.tftest.hcl` - Security and compliance tests
+- `advanced_*.tftest.hcl` - Complex patterns (optional)
 
 **DO NOT RETURN PARTIAL RESULTS** - Only complete test suites are acceptable.
 
@@ -74,10 +85,12 @@ Consider using TodoWrite tool to track progress for complex test generation work
 9. Generate mock tests with override patterns
 10. Generate validation tests (if validations exist in code)
 11. Generate compliance tests (per user requirements)
+12. Apply advanced patterns (if complex patterns detected)
+13. Generate multi-provider tests (if multiple providers used)
 
 **Phase 4 - Documentation & Verification:**
-12. Create coverage report and README
-13. Verify against `reference/verification-checklist.md`
+14. Create coverage report and README
+15. Verify against `reference/verification-checklist.md`
 
 ## STEP 1: Collect User Requirements
 
@@ -192,6 +205,8 @@ Confirm understanding of:
 
 **File naming:** `tests/unit_<feature_name>.tftest.hcl`
 
+**Template:** Read `templates/unit-test-template.hcl` for structure and examples.
+
 ### Structure
 
 ```hcl
@@ -241,6 +256,8 @@ run "test_<feature_name>" {
 
 **File naming:** `tests/integration_<feature_name>.tftest.hcl`
 
+**Template:** Read `templates/integration-test-template.hcl` for structure and examples.
+
 ### Structure
 
 ```hcl
@@ -270,6 +287,8 @@ run "test_<feature_name>_integration" {
 ## STEP 6: Generate Mock Tests
 
 **File naming:** `tests/mock_<feature_name>.tftest.hcl`
+
+**Template:** Read `templates/mock-test-template.hcl` for structure and examples.
 
 ### Structure
 
@@ -320,12 +339,17 @@ run "test_with_override" {
 
 **File naming:** `tests/validation_<type>.tftest.hcl`
 
-**ONLY generate if code contains:**
+**Pre-Check - Does the module have any of these?**
 - Variable `validation {}` blocks
 - Resource/output `precondition {}`/`postcondition {}` blocks
 - `check {}` blocks
 
-**DO NOT generate if validations don't exist.**
+**If NO:** Skip this step entirely. Do not generate validation tests.
+
+**If YES:**
+1. Read `templates/validation-test-template.hcl` for structure and examples
+2. Read `reference/validation-patterns.md` for detection workflow
+3. Generate validation tests using expect_failures
 
 ### Structure
 
@@ -356,16 +380,71 @@ run "test_<validation_name>_fails" {
 
 ## STEP 8: Generate Compliance Tests
 
-Based on user requirements from Step 1, generate tests per `reference/compliance-patterns.md`:
+**Pre-Check - Should compliance tests be generated?**
 
-- Tagging/labeling requirements
-- Encryption (at rest and in transit)
-- Network security (no 0.0.0.0/0)
-- IAM least privilege
-- Logging and monitoring
-- Backup retention
+Generate compliance tests if ANY of these conditions are true:
+- User specified compliance requirements in Step 1
+- Module contains security-sensitive resources (S3, KMS, security groups, IAM, storage accounts)
+- Module handles sensitive data or production workloads
 
-**See `reference/compliance-patterns.md` for comprehensive patterns.**
+**If NO:** Use `reference/compliance-patterns.md` for lightweight security guidance only.
+
+**If YES:**
+1. Read `templates/compliance-test-template.hcl` for comprehensive examples
+2. Read `reference/compliance-patterns.md` for additional patterns
+3. Generate compliance tests for:
+   - Tagging/labeling requirements
+   - Encryption (at rest and in transit)
+   - Network security (no 0.0.0.0/0)
+   - IAM least privilege
+   - Logging and monitoring
+   - Backup retention
+
+## STEP 9 (Optional): Apply Advanced Testing Patterns
+
+**Pre-Check - Does the module have complex patterns?**
+
+Consider using advanced patterns if the module contains:
+- Dynamic blocks (dynamic ingress/egress rules, tags, etc.)
+- for_each with complex set-type attributes
+- Nested for expressions or complex list comprehensions
+- Complex conditional logic (multiple ternaries, nested conditions)
+- Count-based or for_each-based resource creation with calculations
+
+**If NO:** Skip this step. Standard unit/integration tests are sufficient.
+
+**If YES:**
+1. Read `templates/advanced-patterns-template.hcl` for specific pattern examples
+2. Apply relevant patterns from the template:
+   - Pattern 1: Testing set-type attributes with for expressions
+   - Pattern 2: Testing dynamic blocks
+   - Pattern 3-4: Testing conditional resource creation
+   - Pattern 5: Testing locals and computed values
+   - Pattern 7: Testing complex ternary logic
+3. Incorporate these patterns into your unit tests
+
+**Note:** Advanced patterns enhance existing tests; they don't create separate test files.
+
+## STEP 10 (Optional): Multi-Cloud and Multi-Region Testing
+
+**Pre-Check - Does the module use multiple providers?**
+
+Generate multi-provider tests if the module has:
+- Multiple cloud providers (AWS + Azure, AWS + GCP, Azure + GCP)
+- Provider aliases for multi-region deployments (aws.primary + aws.dr)
+- Cross-cloud data sharing or replication
+- Multi-account setups
+
+**If NO:** Skip this step. Single-provider tests are sufficient.
+
+**If YES:**
+1. Read `templates/multi-provider-template.hcl` for structure and examples
+2. Generate dedicated multi-provider test files:
+   - File naming: `tests/multi_provider_<scenario>.tftest.hcl`
+   - Mock ALL providers used
+   - Test cross-cloud consistency (tagging, naming, configuration)
+   - Test provider-specific resource configurations
+3. Ensure all provider-specific data sources are mocked
 
 ## ⚠️ CRITICAL: Integration Test Cost & Safety Warning
 
@@ -444,7 +523,7 @@ All integration test variable values must be modified to prevent clashing with r
   - Ask user for values OR use safe placeholder values
   - Document which variables need real values for integration tests
 
-## STEP 9: Create Documentation
+## STEP 11: Create Documentation
 
 **`tests/COVERAGE.md`:**
 - Test summary table
@@ -482,7 +561,7 @@ Include version requirements in tests/README.md:
 - Valid cloud credentials
 ```
 
-## STEP 10: Final Verification
+## STEP 12: Final Verification
 
 Before marking complete, verify against `reference/verification-checklist.md`:
 
@@ -502,12 +581,14 @@ Before marking complete, verify against `reference/verification-checklist.md`:
 ### File Structure
 ```
 tests/
-├── unit_*.tftest.hcl          # Mock provider, command=plan
-├── integration_*.tftest.hcl   # Real provider, command=apply
-├── mock_*.tftest.hcl          # Overrides, command=plan
-├── validation_*.tftest.hcl    # expect_failures tests
-├── COVERAGE.md                # Coverage report
-└── README.md                  # Documentation
+├── unit_*.tftest.hcl               # Mock provider, command=plan
+├── integration_*.tftest.hcl        # Real provider, command=apply
+├── mock_*.tftest.hcl               # Overrides, command=plan
+├── validation_*.tftest.hcl         # expect_failures tests (if validations exist)
+├── compliance_*.tftest.hcl         # Security/compliance tests (if applicable)
+├── multi_provider_*.tftest.hcl     # Multi-cloud tests (if multiple providers)
+├── COVERAGE.md                     # Coverage report
+└── README.md                       # Documentation
 ```
 
 ### Command Selection
@@ -515,13 +596,14 @@ tests/
 - `apply`: Computed attributes (IDs, ARNs), outputs, cross-resource refs
 - See `reference/anti-patterns.md` for detailed rules
 
-### Common Patterns
+### Common Patterns & Templates
+- **Core Templates:** `unit-test-template.hcl`, `integration-test-template.hcl`, `mock-test-template.hcl`
+- **Advanced Templates:** `validation-test-template.hcl`, `compliance-test-template.hcl`, `advanced-patterns-template.hcl`, `multi-provider-template.hcl`
 - Mock providers: `reference/syntax-examples.md`
-- Cloud-specific: Provider-specific files (`cloud-providers-aws.md`, `cloud-providers-azure.md`, `cloud-providers-gcp.md`)
+- Cloud-specific: `cloud-providers-aws.md`, `cloud-providers-azure.md`, `cloud-providers-gcp.md`
 - Compliance tests: `reference/compliance-patterns.md`
 - Validation detection: `reference/validation-patterns.md`
-- Anti-patterns: `reference/anti-patterns.md`
-- Templates: `templates/` directory
+- Anti-patterns: `reference/anti-patterns.md` (MANDATORY READ)
 
 ---
 

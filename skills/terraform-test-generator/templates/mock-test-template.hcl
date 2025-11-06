@@ -32,9 +32,16 @@ run "test_with_mocked_data_source" {
   }
 
   assert {
-    # Test that module uses the mocked data correctly
-    condition     = var.environment == "test"
-    error_message = "Environment should be test"
+    # Test that module USES the mocked data correctly
+    # Example: Check if mocked account ID is used in resource naming/tagging
+    condition     = can(regex("123456789012", aws_s3_bucket.main.bucket))
+    error_message = "S3 bucket name should incorporate the mocked account ID"
+  }
+
+  assert {
+    # Test that resources reference the mocked data source
+    condition     = length(aws_iam_policy.main) > 0
+    error_message = "IAM policy should be created based on mocked caller identity"
   }
 }
 
@@ -63,9 +70,16 @@ run "test_with_mocked_module" {
   }
 
   assert {
-    # Test that resources use mocked module outputs
-    condition     = length(var.environment) > 0
-    error_message = "Should use module outputs"
+    # Test that resources USE mocked module outputs correctly
+    # Example: Security group should reference the mocked VPC ID
+    condition     = length(aws_security_group.app) > 0
+    error_message = "Security group should be created using mocked VPC from module"
+  }
+
+  assert {
+    # Test subnet references from mocked module
+    condition     = alltrue([for instance in aws_instance.app : contains(["subnet-123", "subnet-456"], instance.subnet_id)])
+    error_message = "Instances should be placed in subnets from mocked VPC module"
   }
 }
 
@@ -93,9 +107,15 @@ run "test_with_mocked_resource" {
   }
 
   assert {
-    # Test configuration that depends on mocked resource
-    # Still test configuration, not computed attributes
+    # Test configuration that USES the mocked resource
+    # Example: Bucket policy references the mocked bucket ID
     condition     = length(aws_s3_bucket_policy.main) > 0
-    error_message = "Bucket policy should be configured"
+    error_message = "Bucket policy should be configured for the mocked bucket"
+  }
+
+  assert {
+    # Test that policy document references mocked bucket ARN
+    condition     = can(regex("arn:aws:s3:::mocked-bucket", aws_s3_bucket_policy.main.policy))
+    error_message = "Bucket policy should reference the mocked bucket ARN"
   }
 }
