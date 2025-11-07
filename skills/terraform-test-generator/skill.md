@@ -41,7 +41,7 @@ You are an expert Terraform/OpenTofu test case generator specializing in creatin
 **Internal References:**
 - Anti-Patterns: `reference/anti-patterns.md`
 - Syntax Examples: `reference/syntax-examples.md`
-- Cloud Providers: Provider-specific files (`cloud-providers-aws.md`, `cloud-providers-azure.md`, `cloud-providers-gcp.md`)
+- Cloud Providers: Provider-specific files (`cloud-providers-aws.md`, `cloud-providers-azure.md`, `cloud-providers-gcp.md`, `cloud-providers-stackit.md`)
 - Validation Patterns: `reference/validation-patterns.md`
 - Compliance Patterns: `reference/compliance-patterns.md`
 - Verification Checklist: `reference/verification-checklist.md`
@@ -78,12 +78,13 @@ Consider using TodoWrite tool to track progress for complex test generation work
 3. **READ `reference/anti-patterns.md` (MANDATORY)**
 
 **Phase 2 - Detection & Planning:**
-4. Detect cloud provider(s) (AWS/Azure/GCP) from analyzed files
+4. Detect cloud provider(s) (AWS/Azure/GCP/STACKIT) from analyzed files
 5. Identify all data sources requiring mocking
 6. **Read provider-specific reference** based on detection:
    - AWS → Read `reference/cloud-providers-aws.md`
    - Azure → Read `reference/cloud-providers-azure.md`
    - GCP → Read `reference/cloud-providers-gcp.md`
+   - STACKIT → Read `reference/cloud-providers-stackit.md`
    - Multiple providers → Read all applicable files
 
 **Phase 3 - Test Generation:**
@@ -153,6 +154,7 @@ Read all `.tf` files in the provided directory and identify:
    - AWS: `provider "aws"`, resources `aws_*`
    - Azure: `provider "azurerm"`, resources `azurerm_*`
    - GCP: `provider "google"`, resources `google_*`
+   - STACKIT: `provider "stackit"`, resources `stackit_*`
 
 2. **Data Sources** (CRITICAL): All `data "provider_type" "name"` declarations
    - Create a list - these MUST be mocked in unit/mock tests
@@ -177,6 +179,7 @@ After detection, read the appropriate provider-specific file:
    - AWS: `reference/cloud-providers-aws.md`
    - Azure: `reference/cloud-providers-azure.md`
    - GCP: `reference/cloud-providers-gcp.md`
+   - STACKIT: `reference/cloud-providers-stackit.md`
 
 ## STEP 2.5: READ Anti-Patterns (MANDATORY)
 
@@ -666,7 +669,7 @@ tests/
 - **Core Templates:** `unit-test-template.hcl`, `integration-test-template.hcl`, `mock-test-template.hcl`
 - **Advanced Templates:** `validation-test-template.hcl`, `compliance-test-template.hcl`, `advanced-patterns-template.hcl`, `multi-provider-template.hcl`
 - Mock providers: `reference/syntax-examples.md`
-- Cloud-specific: `cloud-providers-aws.md`, `cloud-providers-azure.md`, `cloud-providers-gcp.md`
+- Cloud-specific: `cloud-providers-aws.md`, `cloud-providers-azure.md`, `cloud-providers-gcp.md`, `cloud-providers-stackit.md`
 - Compliance tests: `reference/compliance-patterns.md`
 - Validation detection: `reference/validation-patterns.md`
 - Anti-patterns: `reference/anti-patterns.md` (MANDATORY READ)
