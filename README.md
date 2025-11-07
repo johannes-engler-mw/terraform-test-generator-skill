@@ -1,17 +1,19 @@
-# Terraform Test Generator Skill
+# Terraform/OpenTofu Test Generator Skill
 
-A Claude Code skill for generating Terraform test cases following HashiCorp's official testing standards.
+A Claude Code skill for generating Terraform and OpenTofu test cases following HashiCorp's official testing standards.
 
 ## What It Does
 
-This skill generates Terraform test suites by:
+This skill generates Terraform/OpenTofu test suites by:
 
-1. Analyzing your Terraform code and detecting providers
+1. Analyzing your Terraform/OpenTofu code and detecting providers
 2. Generating appropriate test files (unit, integration, mock, validation, compliance)
 3. Providing templates for multi-cloud and advanced testing patterns
 4. Creating test documentation (COVERAGE.md, README.md)
 
 The skill includes 7 test templates covering everything from basic unit tests to complex multi-provider scenarios, with built-in anti-pattern detection and cloud-specific best practices.
+
+**OpenTofu Support:** Fully compatible with OpenTofu - all test syntax is identical, simply use `tofu test` instead of `terraform test`.
 
 ## Installation
 
@@ -32,9 +34,9 @@ cp -r terraform-test-generator-skill/skills/terraform-test-generator/ ~/.claude/
 
 ## Usage
 
-Ask Claude to create Terraform tests in natural language or force its usage by directly mentioning the skill name **terraform-test-generator** in your request.
+Ask Claude to create Terraform or OpenTofu tests in natural language or force its usage by directly mentioning the skill name **terraform-test-generator** in your request.
 
-The skill will analyze your Terraform module, identify providers, and generate appropriate test files with documentation.
+The skill will analyze your Terraform/OpenTofu module, identify providers, and generate appropriate test files with documentation.
 
 ## Supported Providers
 
@@ -94,8 +96,8 @@ terraform-test-generator-skill/
 ## Requirements
 
 - Claude Code 1.0 or higher
-- Terraform 1.6.0 or higher
-- Terraform configuration files
+- Terraform 1.6.0+ or OpenTofu 1.6.0+
+- Terraform/OpenTofu configuration files
 
 ## Example Output
 
@@ -130,6 +132,7 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 - [HashiCorp Terraform Testing Documentation](https://developer.hashicorp.com/terraform/language/tests)
 - [Terraform Test Framework Guide](https://developer.hashicorp.com/terraform/tutorials/configuration-language/test)
+- [OpenTofu Documentation](https://opentofu.org/docs/)
 - [Claude Code Documentation](https://docs.claude.com/en/docs/claude-code)
 
 ## Support

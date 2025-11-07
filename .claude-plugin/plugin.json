@@ -1,7 +1,7 @@
 {
   "name": "terraform-test-generator",
   "version": "1.0.0",
-  "description": "Generate comprehensive Terraform test cases including unit tests, integration tests, mocks, and coverage reports",
+  "description": "Generate comprehensive Terraform and OpenTofu test cases including unit tests, integration tests, mocks, and coverage reports",
   "author": {
     "name": "Johannes Engler"
   },
@@ -9,6 +9,7 @@
   "license": "MIT",
   "keywords": [
     "terraform",
+    "opentofu",
     "testing",
     "test-generation",
     "terraform-test",

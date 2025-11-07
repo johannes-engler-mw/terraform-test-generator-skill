@@ -1,13 +1,15 @@
 ---
 skill_name: Terraform Test Generator
-description: Generate comprehensive Terraform test cases including unit tests, integration tests, mocks, and coverage reports
-trigger: Use when the user asks to test, validate, or verify Terraform code, or mentions "terraform tests", "test suite", "test cases", "unit tests", "integration tests", "write tests", "add tests", or similar testing requests
+description: Generate comprehensive Terraform/OpenTofu test cases including unit tests, integration tests, mocks, and coverage reports
+trigger: Use when the user asks to test, validate, or verify Terraform or OpenTofu code, or mentions "terraform tests", "opentofu tests", "test suite", "test cases", "unit tests", "integration tests", "write tests", "add tests", or similar testing requests
 version: 1.0.0
 ---
 
-# Terraform Test Case Generator
+# Terraform/OpenTofu Test Case Generator
 
-You are an expert Terraform test case generator specializing in creating comprehensive, syntactically correct test suites following HashiCorp's official testing standards.
+You are an expert Terraform/OpenTofu test case generator specializing in creating comprehensive, syntactically correct test suites following HashiCorp's official testing standards.
+
+**OpenTofu Compatibility:** This skill fully supports OpenTofu. All test syntax is identical between Terraform and OpenTofu - simply use `tofu test` instead of `terraform test`.
 
 ## Critical Requirements
 
@@ -546,42 +548,43 @@ All integration test variable values must be modified to prevent clashing with r
 - Compliance requirements
 - **Cost and safety warnings** (see cost warning section above)
 
-## Terraform Version Compatibility
+## Terraform/OpenTofu Version Compatibility
 
 ### Minimum Requirements
-- **Terraform >= 1.6.0** (required for native testing framework)
+- **Terraform >= 1.6.0** OR **OpenTofu >= 1.6.0** (required for native testing framework)
 
 ### Version-Specific Features
 - **1.6.0+**: Basic test support, `expect_failures`, mock providers
 - **1.7.0+**: Improved mock provider support, better error messages
 - **1.8.0+**: Enhanced override capabilities, better debugging
 
+**Note:** OpenTofu maintains compatibility with Terraform's testing framework. All features work identically.
+
 ### For Older Versions
-If user has Terraform < 1.6.0:
+If user has Terraform/OpenTofu < 1.6.0:
 - Inform them that native testing requires 1.6.0+
-- Recommend upgrading to latest Terraform version
+- Recommend upgrading to latest version
 - Alternative: Suggest using [Terratest](https://terratest.gruntwork.io/) for older versions
 
 Include version requirements in tests/README.md:
 ```markdown
 ## Prerequisites
-- Terraform >= 1.6.0 (native testing framework)
+- Terraform >= 1.6.0 or OpenTofu >= 1.6.0 (native testing framework)
 - Cloud provider CLI configured (aws-cli, az, gcloud)
 - Valid cloud credentials
 ```
 
-## Terraform Test Command Syntax
+## Terraform/OpenTofu Test Command Syntax
 
 ### CRITICAL: Correct Command Syntax for Running Tests
 
-**⚠️ IMPORTANT:** The `terraform test` command does NOT support wildcard patterns with the `-filter` flag.
+**⚠️ IMPORTANT:** The `terraform test` / `tofu test` command does NOT support wildcard patterns with the `-filter` flag.
 
 ### ❌ INCORRECT - DO NOT USE IN DOCUMENTATION:
 ```bash
 # These commands DO NOT WORK and should NEVER be included in READMEs
 terraform test -filter=unit_*
-terraform test -filter=integration_*
-terraform test -filter=validation_*
+tofu test -filter=unit_*
 ```
 
 The `-filter` flag expects exact run block names, not file patterns.
@@ -590,46 +593,38 @@ The `-filter` flag expects exact run block names, not file patterns.
 
 **Running All Tests:**
 ```bash
-terraform test
+terraform test  # or: tofu test
 ```
 
 **Running Specific Test Files by Pattern:**
 ```bash
 # Use shell wildcards with file paths
-terraform test tests/unit_*.tftest.hcl
-terraform test tests/integration_*.tftest.hcl
-terraform test tests/mock_*.tftest.hcl
-terraform test tests/validation_*.tftest.hcl
-terraform test tests/compliance_*.tftest.hcl
+terraform test tests/unit_*.tftest.hcl          # or: tofu test tests/unit_*.tftest.hcl
+terraform test tests/integration_*.tftest.hcl   # or: tofu test tests/integration_*.tftest.hcl
 ```
 
 **Running Multiple Test Types:**
 ```bash
-# Use shell brace expansion for multiple patterns
 terraform test tests/{unit,mock,validation,compliance}_*.tftest.hcl
-```
-
-**Running a Specific Test File:**
-```bash
-terraform test tests/unit_networking.tftest.hcl
+# or: tofu test tests/{unit,mock,validation,compliance}_*.tftest.hcl
 ```
 
 **With Verbose Output:**
 ```bash
-terraform test -verbose
+terraform test -verbose  # or: tofu test -verbose
 ```
 
 **With Cleanup Disabled (debugging only):**
 ```bash
-terraform test -cleanup=false
+terraform test -cleanup=false  # or: tofu test -cleanup=false
 ```
 
 ### Documentation Requirements
 
 When generating `tests/README.md` files:
+- ✅ Show both `terraform test` and `tofu test` commands
 - ✅ ALWAYS use file path patterns: `terraform test tests/unit_*.tftest.hcl`
-- ✅ NEVER use `-filter` with wildcards: `terraform test -filter=unit_*`
-- ✅ Show brace expansion for running multiple types
+- ✅ NEVER use `-filter` with wildcards
 - ✅ Include examples of verbose and cleanup flags
 
 ## STEP 12: Final Verification
