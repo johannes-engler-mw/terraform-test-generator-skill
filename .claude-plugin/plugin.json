@@ -24,6 +24,7 @@
     "aws",
     "azure",
     "gcp",
+    "stackit",
     "multi-cloud",
     "tftest",
     "test-automation",

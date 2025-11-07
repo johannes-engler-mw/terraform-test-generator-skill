@@ -3,7 +3,7 @@
 # Purpose: Test configuration logic, conditional expressions, and static values WITHOUT creating real resources
 # IMPORTANT: Use command = plan with mock providers - CANNOT test computed attributes (IDs, ARNs, etc.)
 
-# Define mock provider at file level (replace with azurerm or google as needed)
+# Define mock provider at file level (replace with azurerm, google, or stackit as needed)
 mock_provider "aws" {
   alias = "mock"
 }
@@ -13,7 +13,7 @@ run "test_<feature_name>" {
   command = plan
 
   providers = {
-    aws = aws.mock  # Use aws.mock, azurerm.mock, or google.mock
+    aws = aws.mock  # Use aws.mock, azurerm.mock, google.mock, or stackit.mock
   }
 
   variables {

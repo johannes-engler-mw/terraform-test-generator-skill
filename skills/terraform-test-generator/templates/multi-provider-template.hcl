@@ -15,6 +15,10 @@ mock_provider "google" {
   alias = "mock_gcp"
 }
 
+mock_provider "stackit" {
+  alias = "mock_stackit"
+}
+
 # Pattern 1: Testing AWS + Azure multi-cloud setup
 run "test_aws_azure_integration" {
   command = plan

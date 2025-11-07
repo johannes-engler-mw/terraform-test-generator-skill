@@ -43,6 +43,7 @@ The skill will analyze your Terraform/OpenTofu module, identify providers, and g
 - **AWS**
 - **Azure**
 - **GCP**
+- **STACKIT**
 - **Multi-cloud**
 
 ## Test Templates
@@ -84,6 +85,7 @@ terraform-test-generator-skill/
 │           ├── cloud-providers-aws.md
 │           ├── cloud-providers-azure.md
 │           ├── cloud-providers-gcp.md
+│           ├── cloud-providers-stackit.md
 │           ├── compliance-patterns.md
 │           ├── syntax-examples.md
 │           ├── validation-patterns.md
