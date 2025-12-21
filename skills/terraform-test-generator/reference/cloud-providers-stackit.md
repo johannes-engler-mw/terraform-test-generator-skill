@@ -1,5 +1,12 @@
 # STACKIT Provider Patterns
 
+## Contents
+- [STACKIT Mock Provider](#stackit-mock-provider)
+- [Common Data Sources](#common-data-sources)
+- [Computed Attributes](#computed-attributes)
+- [Authentication](#authentication)
+- [Project Context](#project-context)
+
 ## STACKIT Mock Provider
 
 ```hcl

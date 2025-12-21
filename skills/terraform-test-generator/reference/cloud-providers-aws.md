@@ -1,5 +1,14 @@
 # AWS Provider Patterns
 
+## Contents
+- [AWS Mock Provider](#aws-mock-provider)
+- [AWS Set-Type Attributes](#aws-set-type-attributes)
+- [AWS Data Source Mocking](#aws-data-source-mocking)
+- [AWS Computed Attributes](#aws-computed-attributes)
+- [AWS Security Tests](#aws-security-tests)
+- [AWS Tagging](#aws-tagging)
+- [AWS Naming Conventions](#aws-naming-conventions)
+
 ## AWS Mock Provider
 
 ```hcl
@@ -75,25 +84,9 @@ mock_provider "aws" {
 
 ## AWS Set-Type Attributes
 
-**CRITICAL:** AWS security groups, route tables, and other resources use set-type collections. NEVER index with `[0]`.
+**CRITICAL:** AWS security groups, route tables, and other resources use set-type collections.
 
-**Incorrect:**
-```hcl
-# ❌ WRONG - Will fail with set-type error
-assert {
-  condition = aws_security_group.main.ingress[0].from_port == 443
-  error_message = "Should allow HTTPS"
-}
-```
-
-**Correct:**
-```hcl
-# ✅ CORRECT - Use for expression
-assert {
-  condition = length([for rule in aws_security_group.main.ingress : rule if rule.from_port == 443]) > 0
-  error_message = "Should allow HTTPS"
-}
-```
+**See [common-patterns.md](common-patterns.md#set-type-attributes) for handling set-type attributes (never use `[0]` indexing).**
 
 ## AWS Data Source Mocking
 
@@ -152,20 +145,9 @@ override_data {
 
 ## AWS Computed Attributes
 
-### Attributes to AVOID with `command = plan`
-- `.id` - Resource ID
-- `.arn` - Amazon Resource Name
-- `.dns_name` - DNS endpoints
-- `.endpoint` - Service endpoints
-- `.hosted_zone_id` - Route53 zone IDs
-- Any attribute referencing another resource's computed value
+**Avoid with `command = plan`:** `.id`, `.arn`, `.dns_name`, `.endpoint`, `.hosted_zone_id`, or any cross-resource computed references.
 
-### What You CAN Test with `command = plan`
-- ✅ Variables: `var.region`
-- ✅ Locals: `local.computed_value`
-- ✅ Configuration structure: `length(resource.rule)`
-- ✅ Static values: `resource.tags["Name"]`
-- ✅ Conditional counts: `length(resource)` tests if resource exists
+**See [common-patterns.md](common-patterns.md#command-selection-quick-reference) for complete command selection rules.**
 
 ## AWS Security Tests
 

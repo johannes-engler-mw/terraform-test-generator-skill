@@ -173,59 +173,9 @@ run "test_encryption" {
 
 ## Assertion Anti-Patterns
 
-### Anti-Pattern: Indexing Set-Type Attributes
-
-```hcl
-# ❌ WRONG - Cannot use index notation on sets
-assert {
-  condition = aws_s3_bucket_server_side_encryption_configuration.main.rule[0].sse_algorithm == "AES256"
-  error_message = "Cannot index a set value"
-}
-```
-
-### Correct Approach
-
-```hcl
-# ✅ CORRECT - Use for expressions
-assert {
-  condition = length([for rule in aws_s3_bucket_server_side_encryption_configuration.main.rule : rule if length([for default in rule.apply_server_side_encryption_by_default : default if default.sse_algorithm == "AES256"]) > 0]) > 0
-  error_message = "Encryption algorithm should be AES256"
-}
-```
-
-### Anti-Pattern: Multi-Line Conditions
-
-```hcl
-# ❌ WRONG - Multi-line ternary
-assert {
-  condition = var.iam_role_prefix != "" ?
-    can(regex("^arn:aws:iam::[0-9]+:policy/", data.aws_iam_policy.boundary[0].arn)) :
-    true
-  error_message = "Error"
-}
-
-# ❌ WRONG - Multi-line AND
-assert {
-  condition = length(var.source_security_groups) >= 2 &&
-              length(var.additional_security_group_ids) >= 1
-  error_message = "Error"
-}
-```
-
-### Correct Approach
-
-```hcl
-# ✅ CORRECT - Single line
-assert {
-  condition = var.iam_role_prefix != "" ? can(regex("^arn:aws:iam::[0-9]+:policy/", data.aws_iam_policy.boundary[0].arn)) : true
-  error_message = "Permissions boundary policy ARN should follow expected format"
-}
-
-assert {
-  condition = length(var.source_security_groups) >= 2 && length(var.additional_security_group_ids) >= 1
-  error_message = "Service mesh should have multiple security groups"
-}
-```
+**See [common-patterns.md](common-patterns.md) for:**
+- Set-type attribute handling (never use `[0]` indexing)
+- Assert statement formatting (single-line requirement)
 
 ## Variable Testing Anti-Patterns
 
@@ -374,30 +324,7 @@ run "test_with_entra_groups" {
 
 ## Quick Reference: What to Test with Each Command
 
-### With `command = plan` - Test Configuration
-
-**CAN Test:**
-- ✅ Variables: `var.environment`
-- ✅ Locals: `local.computed_value`
-- ✅ Configuration structure: `length(resource.rule)`
-- ✅ Static values: `resource.tags["Name"]`
-- ✅ Conditional logic: `length(resource)` (tests if exists)
-
-**CANNOT Test:**
-- ❌ Computed IDs: `aws_s3_bucket.main.id`
-- ❌ Computed ARNs: `aws_s3_bucket.main.arn`
-- ❌ Cross-resource refs: `resource.bucket` (if it references `main.id`)
-- ❌ Azure: `.id`, `.principal_id`, `.resource_group_name` (when referencing)
-- ❌ GCP: `.self_link`, `.instance_id`, `.number`
-
-### With `command = apply` - Test Everything
-
-**CAN Test:**
-- ✅ Everything from plan, PLUS:
-- ✅ Computed attributes after resource creation
-- ✅ Resource IDs, ARNs, self-links
-- ✅ Outputs
-- ✅ Cross-resource references
+**See [common-patterns.md](common-patterns.md#command-selection-quick-reference) for complete command selection rules.**
 
 ## Mandatory Pre-Generation Checklist
 

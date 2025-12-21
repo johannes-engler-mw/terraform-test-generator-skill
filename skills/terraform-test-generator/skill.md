@@ -1,15 +1,14 @@
 ---
-skill_name: Terraform Test Generator
-description: Generate comprehensive Terraform/OpenTofu test cases including unit tests, integration tests, mocks, and coverage reports
-trigger: Use when the user asks to test, validate, or verify Terraform or OpenTofu code, or mentions "terraform tests", "opentofu tests", "test suite", "test cases", "unit tests", "integration tests", "write tests", "add tests", or similar testing requests
+name: terraform-test-generator
+description: Generates comprehensive Terraform/OpenTofu test cases including unit tests, integration tests, mocks, and coverage reports. Use when user asks to test, validate, or verify Terraform or OpenTofu code, or mentions terraform tests, test suite, unit tests, integration tests, or test cases.
 version: 1.0.0
 ---
 
 # Terraform/OpenTofu Test Case Generator
 
-You are an expert Terraform/OpenTofu test case generator specializing in creating comprehensive, syntactically correct test suites following HashiCorp's official testing standards.
+Expert test case generator for Terraform/OpenTofu following HashiCorp testing standards.
 
-**OpenTofu Compatibility:** This skill fully supports OpenTofu. All test syntax is identical between Terraform and OpenTofu - simply use `tofu test` instead of `terraform test`.
+**OpenTofu:** Syntax identical to Terraform. Use `tofu test` instead of `terraform test`.
 
 ## Critical Requirements
 
@@ -39,6 +38,7 @@ You are an expert Terraform/OpenTofu test case generator specializing in creatin
 - Cloud Providers: `https://registry.terraform.io/providers/hashicorp/{aws,azurerm,google}/latest/docs`
 
 **Internal References:**
+- Common Patterns: `reference/common-patterns.md` (set-types, mock providers, command selection)
 - Anti-Patterns: `reference/anti-patterns.md`
 - Syntax Examples: `reference/syntax-examples.md`
 - Cloud Providers: Provider-specific files (`cloud-providers-aws.md`, `cloud-providers-azure.md`, `cloud-providers-gcp.md`, `cloud-providers-stackit.md`)
@@ -215,290 +215,93 @@ Confirm understanding of:
 
 **File naming:** `tests/unit_<feature_name>.tftest.hcl`
 
-**Template:** Read `templates/unit-test-template.hcl` for structure and examples.
+**Template:** `templates/unit-test-template.hcl`
 
-### Structure
-
-```hcl
-# Replace <provider> with: aws, azurerm, or google
-mock_provider "<provider>" {
-  alias = "mock"
-}
-
-run "test_<feature_name>" {
-  command = plan
-
-  # IMPORTANT: Always reference the mock provider defined above
-  providers = {
-    <provider> = <provider>.mock
-  }
-
-  # MANDATORY: Mock ALL data sources
-  override_data {
-    target = data.<provider>_<type>.<name>
-    values = {
-      # Realistic mock values
-    }
-  }
-
-  variables {
-    # ALL required variables with tfvars values
-  }
-
-  assert {
-    condition     = <test_configuration_not_computed_attrs>
-    error_message = "<descriptive_message>"
-  }
-}
-```
-
-### Guidelines
-
+**Key requirements:**
+- Use `command = plan`
+- Define mock_provider and reference in `providers = {}`
 - ALWAYS add `override_data` for ALL data sources
-- Use tfvars values for realistic testing
 - Test configuration logic, NOT computed values
-- One file per feature (e.g., `unit_storage.tftest.hcl`)
-- Multiple scenarios per file
+- One file per feature with multiple scenarios
 
-**See `templates/unit-test-template.hcl` and provider-specific reference files for examples.**
+**See template and provider-specific reference files for complete examples.**
 
 ## STEP 5: Generate Integration Tests
 
 **File naming:** `tests/integration_<feature_name>.tftest.hcl`
 
-**Template:** Read `templates/integration-test-template.hcl` for structure and examples.
+**Template:** `templates/integration-test-template.hcl`
 
-### Structure
-
-```hcl
-run "test_<feature_name>_integration" {
-  command = apply  # Integration tests use real providers
-
-  variables {
-    # ALL required variables
-  }
-
-  assert {
-    condition     = <resource>.<computed_attr> != null
-    error_message = "<descriptive_message>"
-  }
-}
-```
-
-### Guidelines
-
-- Use `command = apply` for real resource creation
+**Key requirements:**
+- Use `command = apply` (real providers, real resources)
 - Test computed attributes (IDs, ARNs, endpoints)
-- Test outputs work correctly
-- Verify idempotency
-
-**See `templates/integration-test-template.hcl` for complete template.**
+- Test outputs and idempotency
+- Include cost warnings in documentation
 
 ## STEP 6: Generate Mock Tests
 
 **File naming:** `tests/mock_<feature_name>.tftest.hcl`
 
-**Template:** Read `templates/mock-test-template.hcl` for structure and examples.
+**Template:** `templates/mock-test-template.hcl`
 
-### Structure
+**Key requirements:**
+- Use `override_data` for data sources
+- Use `override_module` for module outputs
+- Use `override_resource` for specific resource values
+- Azure: Valid UUID format (8-4-4-4-12)
+- Mock each `for_each` instance separately
 
-```hcl
-# Replace <provider> with: aws, azurerm, or google
-mock_provider "<provider>" {
-  alias = "mock"
-}
-
-run "test_with_override" {
-  command = plan
-
-  # IMPORTANT: Always reference the mock provider defined above
-  providers = {
-    <provider> = <provider>.mock
-  }
-
-  override_data {
-    target = data.<provider>_<resource>.<name>
-    values = {
-      # Realistic mock values
-    }
-  }
-
-  override_module {
-    target = module.<name>
-    outputs = {
-      # Mock module outputs
-    }
-  }
-
-  variables {
-    # ALL required variables
-  }
-
-  assert {
-    condition     = <test_condition>
-    error_message = "<descriptive_message>"
-  }
-}
-```
-
-**Critical:** Azure requires valid UUID format (8-4-4-4-12). Mock each `for_each` data instance separately.
-
-**See `templates/mock-test-template.hcl` and provider-specific reference files for details.**
+**See template and provider-specific reference files for complete patterns.**
 
 ## STEP 7: Generate Validation Tests (If Applicable)
 
 **File naming:** `tests/validation_<type>.tftest.hcl`
 
-**Pre-Check - Does the module have any of these?**
-- Variable `validation {}` blocks
-- Resource/output `precondition {}`/`postcondition {}` blocks
-- `check {}` blocks
-
-**If NO:** Skip this step entirely. Do not generate validation tests.
+**Pre-Check:** Only generate if module has `validation {}`, `precondition {}`, `postcondition {}`, or `check {}` blocks.
 
 **If YES:**
-1. Read `templates/validation-test-template.hcl` for structure and examples
-2. Read `reference/validation-patterns.md` for detection workflow
-3. Generate validation tests using expect_failures
-
-### Structure
-
-```hcl
-# Replace <provider> with: aws, azurerm, or google
-mock_provider "<provider>" {
-  alias = "mock"
-}
-
-run "test_<validation_name>_fails" {
-  command = plan  # Use apply for postconditions
-
-  # IMPORTANT: Always reference the mock provider defined above
-  providers = {
-    <provider> = <provider>.mock
-  }
-
-  variables {
-    <invalid_variable> = <invalid_value>  # Violates validation
-    # ... all other required variables with valid values
-  }
-
-  expect_failures = [var.<variable_name>]  # or [resource], [check]
-}
-```
-
-**See `reference/validation-patterns.md` for detection workflow.**
+1. Read `templates/validation-test-template.hcl`
+2. Read `reference/validation-patterns.md`
+3. Use `expect_failures` to test invalid inputs
+4. Use `command = plan` for variable validations, `apply` for postconditions
 
 ## STEP 8: Generate Compliance Tests
 
-**Pre-Check - Should compliance tests be generated?**
-
-Generate compliance tests if ANY of these conditions are true:
-- User specified compliance requirements in Step 1
-- Module contains security-sensitive resources (S3, KMS, security groups, IAM, storage accounts)
-- Module handles sensitive data or production workloads
-
-**If NO:** Use `reference/compliance-patterns.md` for lightweight security guidance only.
+**Pre-Check:** Generate if user specified requirements OR module has security-sensitive resources (S3, KMS, IAM, storage).
 
 **If YES:**
-1. Read `templates/compliance-test-template.hcl` for comprehensive examples
-2. Read `reference/compliance-patterns.md` for additional patterns
-3. Generate compliance tests for:
-   - Tagging/labeling requirements
-   - Encryption (at rest and in transit)
-   - Network security (no 0.0.0.0/0)
-   - IAM least privilege
-   - Logging and monitoring
-   - Backup retention
+1. Read `templates/compliance-test-template.hcl`
+2. Read `reference/compliance-patterns.md`
+3. Test: tagging, encryption, network security, IAM, logging, backups
 
 ## STEP 9 (Optional): Apply Advanced Testing Patterns
 
-**Pre-Check - Does the module have complex patterns?**
-
-Consider using advanced patterns if the module contains:
-- Dynamic blocks (dynamic ingress/egress rules, tags, etc.)
-- for_each with complex set-type attributes
-- Nested for expressions or complex list comprehensions
-- Complex conditional logic (multiple ternaries, nested conditions)
-- Count-based or for_each-based resource creation with calculations
-
-**If NO:** Skip this step. Standard unit/integration tests are sufficient.
+**Pre-Check:** Only if module has dynamic blocks, complex for_each, nested expressions, or complex conditionals.
 
 **If YES:**
-1. Read `templates/advanced-patterns-template.hcl` for specific pattern examples
-2. Apply relevant patterns from the template:
-   - Pattern 1: Testing set-type attributes with for expressions
-   - Pattern 2: Testing dynamic blocks
-   - Pattern 3-4: Testing conditional resource creation
-   - Pattern 5: Testing locals and computed values
-   - Pattern 7: Testing complex ternary logic
-3. Incorporate these patterns into your unit tests
-
-**Note:** Advanced patterns enhance existing tests; they don't create separate test files.
+1. Read `templates/advanced-patterns-template.hcl`
+2. Incorporate patterns for: set-type attributes, dynamic blocks, conditionals, complex ternary logic
+3. Enhance existing tests (don't create separate files)
 
 ## STEP 10 (Optional): Multi-Cloud and Multi-Region Testing
 
-**Pre-Check - Does the module use multiple providers?**
-
-Generate multi-provider tests if the module has:
-- Multiple cloud providers (AWS + Azure, AWS + GCP, Azure + GCP)
-- Provider aliases for multi-region deployments (aws.primary + aws.dr)
-- Cross-cloud data sharing or replication
-- Multi-account setups
-
-**If NO:** Skip this step. Single-provider tests are sufficient.
+**Pre-Check:** Only if module uses multiple cloud providers or provider aliases for multi-region.
 
 **If YES:**
-1. Read `templates/multi-provider-template.hcl` for structure and examples
-2. Generate dedicated multi-provider test files:
-   - File naming: `tests/multi_provider_<scenario>.tftest.hcl`
-   - Mock ALL providers used
-   - Test cross-cloud consistency (tagging, naming, configuration)
-   - Test provider-specific resource configurations
-3. Ensure all provider-specific data sources are mocked
+1. Read `templates/multi-provider-template.hcl`
+2. File naming: `tests/multi_provider_<scenario>.tftest.hcl`
+3. Mock ALL providers and test cross-cloud consistency
 
 ## ⚠️ CRITICAL: Integration Test Cost & Safety Warning
 
-**ALWAYS Include These Warnings in Generated Documentation:**
+**ALWAYS Include in Generated README:**
 
-Integration tests create **REAL cloud resources** and **WILL incur costs**. Additionally, poorly configured tests can:
-- Clash with existing production resources
-- Create orphaned resources if tests fail
-- Incur unexpected charges if resources aren't cleaned up
+Integration tests create REAL resources and incur costs. Include this in `tests/README.md`:
+- Warning about real resources and costs
+- Pre-flight checks (verify variable values, set billing alerts, use test accounts)
+- Best practices (run unit tests for free, use integration sparingly, clean up failures)
 
-### Cost Mitigation
-
-**For tests/README.md, include:**
-
-```markdown
-## ⚠️ Cost & Safety Considerations
-
-**WARNING**: Integration tests create REAL cloud resources and WILL incur costs.
-
-### Before Running Integration Tests:
-1. **Verify test variable values** don't conflict with production resources
-2. **Check environment/naming variables** are set to test-specific values (e.g., `environment = "test"`)
-3. **Set up billing alerts** in your cloud provider console
-4. **Use separate accounts/subscriptions** for testing when possible
-
-### Estimated Costs:
-- **AWS**: Varies by resources (typically $1-10 per test run)
-- **Azure**: Varies by resources (typically $1-10 per test run)
-- **GCP**: Varies by resources (typically $1-10 per test run)
-
-### Best Practices:
-- ✅ Run unit tests (mock providers) for regular testing - they're FREE
-- ✅ Run integration tests sparingly (e.g., before deployments)
-- ✅ Immediately clean up failed test resources
-- ✅ Use `terraform test -cleanup=false` only when debugging
-- ⚠️ Monitor your cloud billing dashboard regularly
-```
-
-### Resource Name Conflict Prevention
-
-All integration test variable values must be modified to prevent clashing with real resources:
-- Environment values: `prod` → `test`, `production` → `test`
-- Resource names: Add `test-` prefix or `-test` suffix
-- Unique identifiers: Consider adding timestamps or random suffixes
+**Resource naming:** Transform all values to prevent conflicts (prod→test, add test- prefix, use unique IDs).
 
 ## Error Handling
 

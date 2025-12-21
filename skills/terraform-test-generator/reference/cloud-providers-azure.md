@@ -1,5 +1,16 @@
 # Azure (azurerm) Provider Patterns
 
+## Contents
+- [Azure Mock Provider](#azure-mock-provider)
+- [Azure UUID Validation Requirements](#azure-uuid-validation-requirements)
+- [Azure Override Data with Valid UUIDs](#azure-override-data-with-valid-uuids)
+- [Azure for_each Data Source Mocking](#azure-for_each-data-source-mocking)
+- [Azure Data Source Mocking](#azure-data-source-mocking)
+- [Azure Computed Attributes](#azure-computed-attributes)
+- [Azure Security Tests](#azure-security-tests)
+- [Azure Tagging](#azure-tagging)
+- [Azure Naming Conventions](#azure-naming-conventions)
+
 ## Azure Mock Provider
 
 ```hcl
@@ -238,19 +249,9 @@ override_data {
 
 ## Azure Computed Attributes
 
-### Attributes to AVOID with `command = plan`
-- `.id` - Resource ID (full path format)
-- `.resource_group_name` (when referencing another resource)
-- `.principal_id` - Managed identity principal ID
-- `.identity` - Identity blocks (computed)
-- Any cross-resource references
+**Avoid with `command = plan`:** `.id`, `.resource_group_name` (when referencing), `.principal_id`, `.identity`, or any cross-resource references.
 
-### What You CAN Test with `command = plan`
-- ✅ Variables: `var.location`, `var.resource_group_name`
-- ✅ Locals: `local.computed_value`
-- ✅ Configuration structure: `length(resource.rule)`
-- ✅ Static values: `resource.tags["Environment"]`
-- ✅ Conditional counts: `length(resource)` tests if resource exists
+**See [common-patterns.md](common-patterns.md#command-selection-quick-reference) for complete command selection rules.**
 
 ## Azure Security Tests
 

@@ -9,39 +9,7 @@
 
 ## Assert Statement Formatting
 
-### Correct Format
-All conditions must be on a single line:
-
-```hcl
-# Simple condition
-assert {
-  condition = var.environment != ""
-  error_message = "Environment variable must not be empty"
-}
-
-# Ternary operator on single line
-assert {
-  condition = var.iam_role_prefix != "" ? can(regex("^arn:aws:iam::[0-9]+:policy/", data.aws_iam_policy.boundary[0].arn)) : true
-  error_message = "Permissions boundary policy ARN should follow expected format"
-}
-
-# Multiple conditions with AND
-assert {
-  condition = length(var.security_group_settings.source_security_groups) >= 2 && length(var.additional_security_group_ids) >= 1
-  error_message = "Service mesh should have multiple security groups for different service tiers"
-}
-```
-
-### Incorrect Format (DO NOT USE)
-```hcl
-# Wrong: Multi-line condition
-assert {
-  condition = var.iam_role_prefix != "" ?
-    can(regex("^arn:aws:iam::[0-9]+:policy/", data.aws_iam_policy.boundary[0].arn)) :
-    true
-  error_message = "Error message"
-}
-```
+**See [common-patterns.md](common-patterns.md#assert-statement-formatting) for formatting rules and examples.**
 
 ## Mock Provider Patterns
 
@@ -224,23 +192,7 @@ run "test_complex_variables" {
 
 ## Handling Set-Type Attributes
 
-Many Terraform resource attributes are sets, not lists. You CANNOT use index notation `[0]` on sets.
-
-### Wrong
-```hcl
-assert {
-  condition = aws_s3_bucket_server_side_encryption_configuration.main.rule[0].sse_algorithm == "AES256"
-  error_message = "Cannot index a set value"
-}
-```
-
-### Correct - Use `for` expressions
-```hcl
-assert {
-  condition = length([for rule in aws_s3_bucket_server_side_encryption_configuration.main.rule : rule if length([for default in rule.apply_server_side_encryption_by_default : default if default.sse_algorithm == "AES256"]) > 0]) > 0
-  error_message = "Encryption algorithm should be AES256"
-}
-```
+**See [common-patterns.md](common-patterns.md#set-type-attributes) for handling set-type attributes with for expressions.**
 
 ## Meaningful vs Meaningless Tests
 

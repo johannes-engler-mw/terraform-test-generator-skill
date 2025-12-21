@@ -81,14 +81,6 @@ These are the most common causes of test failures. Verify ALL of these before ma
 - [ ] AWS: Valid ARN formats used
 - [ ] GCP: Valid project IDs and resource paths
 
-## Data Source Mocking (CRITICAL)
-
-- [ ] ALL data sources identified from Terraform code
-- [ ] Every data source has corresponding `override_data` block
-- [ ] Mock values match expected data types
-- [ ] `for_each` data sources mocked for each instance
-- [ ] Azure: Each `for_each` data instance mocked with exact key
-
 ## Command Selection Validation
 
 ### Unit Tests
