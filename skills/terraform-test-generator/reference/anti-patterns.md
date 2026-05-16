@@ -75,6 +75,17 @@ run "test_resource_creation" {
 
 ## Mock Provider Anti-Patterns
 
+### `mock_data` vs `override_data` — not a real anti-pattern
+
+A common mistake when reading other people's tests is calling `mock_data` inside `mock_provider` "wrong". It isn't. The two mechanisms solve different problems:
+
+| Mechanism | Scope | When it's right |
+|-----------|-------|-----------------|
+| `override_data { target = data.X.Y ... }` inside a `run` block | Per-scenario | Different runs need different mocked values (different AZ counts, AMI variants, region-specific responses). This is the default for generated tests because new scenarios can be added without restructuring the file. |
+| `mock_data "X" {...}` inside `mock_provider {}` | File-level (all runs in the file) | Every run in the file sees the same mock values. Reduces repetition when there's no per-run variation. |
+
+The generated test suite defaults to `override_data` for portability and easier evolution. Reach for file-level `mock_data` only when you've checked that no scenario needs a different value — otherwise you'll end up rewriting later.
+
 ### Anti-Pattern: Using Overrides Without Mock Provider
 
 ```hcl
@@ -173,9 +184,47 @@ run "test_encryption" {
 
 ## Assertion Anti-Patterns
 
-**See [common-patterns.md](common-patterns.md) for:**
-- Set-type attribute handling (never use `[0]` indexing)
-- Assert statement formatting (single-line requirement)
+### Anti-Pattern: `[0]` indexing on set-type attributes
+
+Many resource attributes are sets, not lists — `security_group.ingress`, `security_group.egress`, `bucket.lifecycle_rule.transition`, and so on. Sets aren't ordered, so `set[0]` is not stable and Terraform rejects it. Use a `for` expression to filter instead.
+
+```hcl
+# ❌ WRONG — set indexing
+assert {
+  condition = aws_security_group.main.ingress[0].from_port == 443
+  error_message = "Should allow HTTPS"
+}
+
+# ✅ CORRECT — for expression
+assert {
+  condition = length([for rule in aws_security_group.main.ingress : rule if rule.from_port == 443]) > 0
+  error_message = "Should allow HTTPS"
+}
+```
+
+The same rule applies to `egress`, SSE rule sets, and any nested set block. List-typed attributes (e.g. `versioning_configuration[0]`, `root_block_device[0]`) are fine to index — only sets are forbidden.
+
+### Anti-Pattern: multi-line `condition` expressions
+
+`condition = ...` must be a single line. Terraform parses the assertion line-by-line and a multi-line expression silently breaks the assert.
+
+```hcl
+# ❌ WRONG — line-wrapped condition
+assert {
+  condition = var.iam_role_prefix != "" ?
+    can(regex("^arn:aws:iam::[0-9]+:policy/", data.aws_iam_policy.boundary[0].arn)) :
+    true
+  error_message = "Permissions boundary policy ARN should follow expected format"
+}
+
+# ✅ CORRECT — single line, even if long
+assert {
+  condition = var.iam_role_prefix != "" ? can(regex("^arn:aws:iam::[0-9]+:policy/", data.aws_iam_policy.boundary[0].arn)) : true
+  error_message = "Permissions boundary policy ARN should follow expected format"
+}
+```
+
+For genuinely complex conditions, extract intermediate values into the module's `locals` and assert on those — both more readable and parseable.
 
 ## Variable Testing Anti-Patterns
 
@@ -322,9 +371,39 @@ run "test_with_entra_groups" {
 }
 ```
 
+## Documentation Anti-Patterns
+
+### Anti-Pattern: Using `-filter` in generated READMEs
+
+```bash
+# ❌ WRONG — these encourage brittle test selection
+terraform test -filter=unit_*
+terraform test -filter=unit_vpc_networking.tftest.hcl
+```
+
+The `-filter` flag matches run-block *names*, not files. Even with an exact filename it works only by coincidence (if the run block happens to share the basename). Shell glob patterns on file paths are always clearer and more portable.
+
+```bash
+# ✅ CORRECT
+terraform test                                # run everything
+terraform test tests/unit_*.tftest.hcl        # run by type
+```
+
+Never emit `-filter` in user-facing documentation.
+
 ## Quick Reference: What to Test with Each Command
 
-**See [common-patterns.md](common-patterns.md#command-selection-quick-reference) for complete command selection rules.**
+`command = plan` works on values Terraform knows before any provider call:
+- Variables (`var.environment`), locals, static configuration values
+- Structural assertions (`length(resource.rule) > 0`, key presence in tags)
+- Conditional logic (`length(aws_kms_key.this) == 1` to verify a count-conditional resource exists)
+
+`command = plan` fails on:
+- Computed IDs (`.id`, `.arn`, `.self_link`)
+- Cross-resource references whose target is computed (`aws_s3_bucket_versioning.this.bucket = aws_s3_bucket.this.id`)
+- Anything only known after resource creation
+
+`command = apply` covers everything `plan` does plus the computed attributes — but creates real resources, so reserve it for integration tests.
 
 ## Mandatory Pre-Generation Checklist
 

@@ -1,106 +1,61 @@
 # AWS Provider Patterns
 
-## Contents
-- [AWS Mock Provider](#aws-mock-provider)
-- [AWS Set-Type Attributes](#aws-set-type-attributes)
-- [AWS Data Source Mocking](#aws-data-source-mocking)
-- [AWS Computed Attributes](#aws-computed-attributes)
-- [AWS Security Tests](#aws-security-tests)
-- [AWS Tagging](#aws-tagging)
-- [AWS Naming Conventions](#aws-naming-conventions)
+This file covers AWS-specific quirks. For shared rules (mock-provider basics, `[0]` on sets, computed attributes under `plan`, single-line conditions, generic security/tagging assertions), see [anti-patterns.md](anti-patterns.md) and [compliance-patterns.md](compliance-patterns.md).
 
-## AWS Mock Provider
+## Mock provider with resource defaults
+
+For resources whose attributes you reference in assertions, supply sensible defaults so plan-mode tests have realistic values:
 
 ```hcl
-mock_provider "aws" {
-  alias = "mock"
-}
-
-# With resource mocks
 mock_provider "aws" {
   alias = "mock"
 
   mock_resource "aws_s3_bucket" {
     defaults = {
-      id                    = "test-bucket"
-      bucket                = "test-bucket"
-      arn                   = "arn:aws:s3:::test-bucket"
-      region                = "us-east-1"
-      bucket_domain_name    = "test-bucket.s3.amazonaws.com"
+      id                 = "test-bucket"
+      bucket             = "test-bucket"
+      arn                = "arn:aws:s3:::test-bucket"
+      region             = "us-east-1"
+      bucket_domain_name = "test-bucket.s3.amazonaws.com"
     }
   }
 
   mock_resource "aws_instance" {
     defaults = {
-      id                    = "i-1234567890abcdef0"
-      arn                   = "arn:aws:ec2:us-east-1:123456789012:instance/i-1234567890abcdef0"
-      instance_type         = "t3.micro"
-      availability_zone     = "us-east-1a"
-    }
-  }
-
-  mock_resource "aws_lambda_function" {
-    defaults = {
-      id                     = "test-lambda-function"
-      arn                    = "arn:aws:lambda:us-east-1:123456789012:function:test-lambda-function"
-      function_name          = "test-lambda-function"
-      runtime                = "python3.11"
-      handler                = "index.handler"
-      invoke_arn             = "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:test-lambda-function/invocations"
+      id                = "i-1234567890abcdef0"
+      arn               = "arn:aws:ec2:us-east-1:123456789012:instance/i-1234567890abcdef0"
+      instance_type     = "t3.micro"
+      availability_zone = "us-east-1a"
     }
   }
 
   mock_resource "aws_db_instance" {
     defaults = {
-      id                     = "test-db-instance"
-      arn                    = "arn:aws:rds:us-east-1:123456789012:db:test-db-instance"
-      engine                 = "postgres"
-      engine_version         = "15.3"
-      instance_class         = "db.t3.micro"
-      endpoint               = "test-db-instance.abcdef.us-east-1.rds.amazonaws.com:5432"
-      address                = "test-db-instance.abcdef.us-east-1.rds.amazonaws.com"
-    }
-  }
-
-  mock_resource "aws_ecs_cluster" {
-    defaults = {
-      id                     = "arn:aws:ecs:us-east-1:123456789012:cluster/test-cluster"
-      arn                    = "arn:aws:ecs:us-east-1:123456789012:cluster/test-cluster"
-      name                   = "test-cluster"
-    }
-  }
-
-  mock_resource "aws_eks_cluster" {
-    defaults = {
-      id                     = "test-eks-cluster"
-      arn                    = "arn:aws:eks:us-east-1:123456789012:cluster/test-eks-cluster"
-      name                   = "test-eks-cluster"
-      endpoint               = "https://ABC123.gr7.us-east-1.eks.amazonaws.com"
-      version                = "1.28"
+      id             = "test-db-instance"
+      arn            = "arn:aws:rds:us-east-1:123456789012:db:test-db-instance"
+      engine         = "postgres"
+      engine_version = "15.3"
+      endpoint       = "test-db-instance.abcdef.us-east-1.rds.amazonaws.com:5432"
     }
   }
 }
 ```
 
-## AWS Set-Type Attributes
+ARNs follow `arn:aws:<service>:<region>:<account>:<type>/<id>`. Use `123456789012` as a synthetic account ID and `us-east-1` as a synthetic region — both are unambiguously not-real test values.
 
-**CRITICAL:** AWS security groups, route tables, and other resources use set-type collections.
+## Data source mocking
 
-**See [common-patterns.md](common-patterns.md#set-type-attributes) for handling set-type attributes (never use `[0]` indexing).**
-
-## AWS Data Source Mocking
+Most AWS modules reach for one of these data sources. Drop these into `override_data` blocks per run, or as `mock_data` blocks at file level if every scenario uses the same values:
 
 ```hcl
-# Mock availability zones
 override_data {
   target = data.aws_availability_zones.available
   values = {
-    names = ["us-east-1a", "us-east-1b", "us-east-1c"]
+    names    = ["us-east-1a", "us-east-1b", "us-east-1c"]
     zone_ids = ["use1-az1", "use1-az2", "use1-az3"]
   }
 }
 
-# Mock caller identity
 override_data {
   target = data.aws_caller_identity.current
   values = {
@@ -110,7 +65,6 @@ override_data {
   }
 }
 
-# Mock region
 override_data {
   target = data.aws_region.current
   values = {
@@ -120,75 +74,26 @@ override_data {
   }
 }
 
-# Mock VPC
 override_data {
-  target = data.aws_vpc.main
+  target = data.aws_ami.ubuntu  # or any AMI lookup
   values = {
-    id         = "vpc-12345678"
-    cidr_block = "10.0.0.0/16"
-    arn        = "arn:aws:ec2:us-east-1:123456789012:vpc/vpc-12345678"
-  }
-}
-
-# Mock AMI
-override_data {
-  target = data.aws_ami.ubuntu
-  values = {
-    id               = "ami-12345678"
-    arn              = "arn:aws:ec2:us-east-1::image/ami-12345678"
-    architecture     = "x86_64"
-    image_id         = "ami-12345678"
-    name             = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20231201"
+    id           = "ami-12345678"
+    arn          = "arn:aws:ec2:us-east-1::image/ami-12345678"
+    architecture = "x86_64"
+    name         = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20231201"
   }
 }
 ```
 
-## AWS Computed Attributes
+## Naming-convention quirks
 
-**Avoid with `command = plan`:** `.id`, `.arn`, `.dns_name`, `.endpoint`, `.hosted_zone_id`, or any cross-resource computed references.
-
-**See [common-patterns.md](common-patterns.md#command-selection-quick-reference) for complete command selection rules.**
-
-## AWS Security Tests
+S3 bucket names are **globally unique** across all AWS accounts. Generated integration-test bucket names must include a unique suffix (timestamp, random ID) to avoid collisions with real buckets.
 
 ```hcl
-# KMS encryption for S3
-assert {
-  condition = length([for rule in aws_s3_bucket_server_side_encryption_configuration.main.rule : rule if length([for default in rule.apply_server_side_encryption_by_default : default if default.sse_algorithm == "aws:kms"]) > 0]) > 0
-  error_message = "S3 bucket must use KMS encryption"
-}
-
-# Security group restrictive rules
-assert {
-  condition = length([for rule in aws_security_group.main.ingress : rule if rule.cidr_blocks[0] == "0.0.0.0/0"]) == 0
-  error_message = "Security groups must not allow unrestricted access"
-}
-
-# S3 public access block
-assert {
-  condition = aws_s3_bucket_public_access_block.main.block_public_acls == true
-  error_message = "S3 bucket must block public ACLs"
-}
+# ✅ Avoids collision with any real bucket
+bucket = "test-myapp-${formatdate("YYYYMMDDHHmm", timestamp())}"
 ```
 
-## AWS Tagging
+Lambda function names, IAM role names, and CloudWatch log group names also have global-per-account-per-region uniqueness; apply the same suffix pattern.
 
-```hcl
-assert {
-  condition = alltrue([
-    contains(keys(aws_instance.main.tags), "Environment"),
-    contains(keys(aws_instance.main.tags), "Project"),
-    contains(keys(aws_instance.main.tags), "Owner")
-  ])
-  error_message = "Resource must have Environment, Project, and Owner tags"
-}
-```
-
-## AWS Naming Conventions
-
-```hcl
-assert {
-  condition = can(regex("^[a-z0-9-]+$", var.resource_name))
-  error_message = "AWS resource names should use lowercase letters, numbers, and hyphens"
-}
-```
+General AWS naming: lowercase letters, numbers, and hyphens (`^[a-z0-9-]+$`). Most resource types reject underscores.

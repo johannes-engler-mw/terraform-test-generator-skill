@@ -1,28 +1,20 @@
 # STACKIT Provider Patterns
 
-## Contents
-- [STACKIT Mock Provider](#stackit-mock-provider)
-- [Common Data Sources](#common-data-sources)
-- [Computed Attributes](#computed-attributes)
-- [Authentication](#authentication)
-- [Project Context](#project-context)
+This file covers STACKIT-specific quirks. For shared rules (mock-provider basics, `[0]` on sets, computed attributes under `plan`, single-line conditions, generic security/tagging assertions), see [anti-patterns.md](anti-patterns.md) and [compliance-patterns.md](compliance-patterns.md).
 
-## STACKIT Mock Provider
+## Mock provider with resource defaults
+
+Almost every STACKIT resource requires `project_id`. Use a synthetic value (`test-project-456`) consistently across all mocks and variable defaults:
 
 ```hcl
-mock_provider "stackit" {
-  alias = "mock"
-}
-
-# With resource mocks
 mock_provider "stackit" {
   alias = "mock"
 
   mock_resource "stackit_ske_cluster" {
     defaults = {
-      id                = "test-cluster-id-123"
-      name              = "test-ske-cluster"
-      project_id        = "test-project-456"
+      id                 = "test-cluster-id-123"
+      name               = "test-ske-cluster"
+      project_id         = "test-project-456"
       kubernetes_version = "1.28"
     }
   }
@@ -45,60 +37,12 @@ mock_provider "stackit" {
     }
   }
 
-  mock_resource "stackit_mariadb_instance" {
-    defaults = {
-      id         = "test-mariadb-id"
-      name       = "test-mariadb"
-      project_id = "test-project-456"
-      version    = "10.6"
-    }
-  }
-
-  mock_resource "stackit_opensearch_instance" {
-    defaults = {
-      id         = "test-opensearch-id"
-      name       = "test-opensearch"
-      project_id = "test-project-456"
-      version    = "2.8"
-    }
-  }
-
-  mock_resource "stackit_rabbitmq_instance" {
-    defaults = {
-      id         = "test-rabbitmq-id"
-      name       = "test-rabbitmq"
-      project_id = "test-project-456"
-      version    = "3.12"
-    }
-  }
-
-  mock_resource "stackit_logme_instance" {
-    defaults = {
-      id         = "test-logme-id"
-      name       = "test-logme"
-      project_id = "test-project-456"
-    }
-  }
-
-  mock_resource "stackit_network" {
-    defaults = {
-      id         = "test-network-id"
-      name       = "test-network"
-      project_id = "test-project-456"
-    }
-  }
-
-  mock_resource "stackit_server" {
-    defaults = {
-      id         = "test-server-id"
-      name       = "test-server"
-      project_id = "test-project-456"
-    }
-  }
+  # Other instance-style resources (mariadb, opensearch, rabbitmq, logme)
+  # follow the same shape: id, name, project_id, version.
 }
 ```
 
-## Common Data Sources
+## Data source mocking
 
 ```hcl
 override_data {
@@ -119,17 +63,10 @@ override_data {
 }
 ```
 
-## Computed Attributes
+## Computed attributes specific to STACKIT
 
-Avoid with `command = plan`:
-- `.id` - Resource ID
-- `.endpoint` - Service endpoints
-- `.connection_string` - Database connections
+Treat these as apply-only (in addition to the universal `.id` rule): `.endpoint`, `.connection_string`, any DSN-shaped values returned by managed-data services.
 
-## Authentication
+## Authentication and project context
 
-STACKIT uses service account key flow. No credentials needed in tests - mock provider handles authentication.
-
-## Project Context
-
-Most STACKIT resources require `project_id`. Always include in mocks and variable defaults.
+STACKIT uses a service-account key flow in real runs. The `mock_provider` short-circuits this — no credentials are needed for test execution. Every resource declaration must still include `project_id`; missing it surfaces as a confusing "invalid request" rather than a clean validation error.

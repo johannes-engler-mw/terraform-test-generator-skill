@@ -10,95 +10,60 @@ Expert test case generator for Terraform/OpenTofu following HashiCorp testing st
 
 **OpenTofu:** Syntax identical to Terraform. Use `tofu test` instead of `terraform test`.
 
-## Critical Requirements
+## Before You Start
 
-**BEFORE WRITING ANY TESTS:**
-
-1. Read `reference/anti-patterns.md` (MANDATORY - DO THIS FIRST)
-2. Identify ALL data sources in Terraform code
-3. Mock all data sources with `override_data` in unit/mock tests
-4. Verify correct command selection (plan vs apply)
-
-**Top 4 Causes of Test Failures:**
+Most Terraform-test bugs come from the same four mistakes:
 - Missing `override_data` for data sources in unit tests
 - Indexing set-type attributes with `[0]` (use `for` expressions)
-- Testing computed attributes (.id/.arn) with `command = plan`
-- Multi-line conditions in assert blocks
+- Testing computed attributes (`.id`, `.arn`) under `command = plan`
+- Multi-line `assert` conditions
 
-**Critical Documentation Requirements:**
-- ❌ NEVER use `terraform test -filter=unit_*` (wildcards not supported with -filter)
-- ✅ ALWAYS use `terraform test tests/unit_*.tftest.hcl` (file path with shell wildcards)
-- See "Terraform Test Command Syntax" section for complete guidance
+Read `reference/anti-patterns.md` before writing any tests — it explains each of these with examples. The cost is small compared to debugging a broken suite later.
 
-## Documentation References
+For generated docs: use file-path patterns like `terraform test tests/unit_*.tftest.hcl`. Don't use `-filter`. Details in the "Test Command Syntax" section below.
 
-**Core Resources:**
-- Primary: `https://developer.hashicorp.com/terraform/language/tests`
-- Mocking: `https://developer.hashicorp.com/terraform/language/tests/mocking`
-- Cloud Providers: `https://registry.terraform.io/providers/hashicorp/{aws,azurerm,google}/latest/docs`
+## Reference Files
 
-**Internal References:**
-- Common Patterns: `reference/common-patterns.md` (set-types, mock providers, command selection)
-- Anti-Patterns: `reference/anti-patterns.md`
-- Syntax Examples: `reference/syntax-examples.md`
-- Cloud Providers: Provider-specific files (`cloud-providers-aws.md`, `cloud-providers-azure.md`, `cloud-providers-gcp.md`, `cloud-providers-stackit.md`)
-- Validation Patterns: `reference/validation-patterns.md`
-- Compliance Patterns: `reference/compliance-patterns.md`
-- Verification Checklist: `reference/verification-checklist.md`
-- Templates: `templates/` directory
-  - Core Templates:
-    - `unit-test-template.hcl` - Configuration testing with mock providers
-    - `integration-test-template.hcl` - Real resource creation and testing
-    - `mock-test-template.hcl` - Override patterns for data/modules/resources
-  - Advanced Templates:
-    - `validation-test-template.hcl` - Testing validations with expect_failures
-    - `compliance-test-template.hcl` - Security and compliance testing
-    - `advanced-patterns-template.hcl` - Complex scenarios and patterns
-    - `multi-provider-template.hcl` - Multi-cloud and multi-region testing
+| File | Contents |
+|------|----------|
+| `reference/anti-patterns.md` | The four headline failures, plus mock-provider and documentation pitfalls |
+| `reference/cloud-providers-{aws,azure,gcp,stackit}.md` | Provider-specific data-source mocking, common quirks |
+| `reference/validation-patterns.md` | `expect_failures`, precondition/postcondition testing |
+| `reference/compliance-patterns.md` | Encryption, tagging, network-security assertions |
+| `templates/{unit,integration,mock,validation,compliance}-test-template.hcl` | Skeleton files for the common test types |
+| `templates/advanced/` | Only read when applicable — `advanced-patterns-template.hcl` (dynamic blocks, nested for_each) and `multi-provider-template.hcl` (multi-cloud / provider aliases) |
 
-## File Management
+Authoritative external docs: `https://developer.hashicorp.com/terraform/language/tests` and `…/tests/mocking`.
 
-Create all test files in a `tests/` folder:
-- `unit_*.tftest.hcl` - Mock providers, test configuration
-- `integration_*.tftest.hcl` - Real providers, test actual resources
-- `mock_*.tftest.hcl` - Override patterns for data/modules
-- `validation_*.tftest.hcl` - expect_failures tests (if validations exist)
-- `compliance_*.tftest.hcl` - Security and compliance tests
-- `advanced_*.tftest.hcl` - Complex patterns (optional)
+## File Layout
 
-**DO NOT RETURN PARTIAL RESULTS** - Only complete test suites are acceptable.
+Put everything under a `tests/` folder. File names drive intent:
+- `unit_*.tftest.hcl` — mock provider, `command = plan`, test configuration
+- `integration_*.tftest.hcl` — real provider, `command = apply`, test actual resources
+- `mock_*.tftest.hcl` — overrides for data / modules / resources
+- `validation_*.tftest.hcl` — `expect_failures` (only if the module has validation/precondition blocks)
+- `compliance_*.tftest.hcl` — security and compliance assertions
+- `advanced_*.tftest.hcl` — complex patterns (optional)
 
-## Workflow Checklist
+Always return a complete suite — half-finished output forces the user to debug both their code and your gaps.
 
-Consider using TodoWrite tool to track progress for complex test generation workflows.
+## Workflow
 
-**Phase 1 - Initial Analysis (Execute in Parallel):**
-1. Collect variable values and compliance requirements from user (use intelligent defaults if not provided)
-2. Read and analyze all Terraform files in provided directory
-3. **READ `reference/anti-patterns.md` (MANDATORY)**
+Use TodoWrite to track progress on large modules.
 
-**Phase 2 - Detection & Planning:**
-4. Detect cloud provider(s) (AWS/Azure/GCP/STACKIT) from analyzed files
-5. Identify all data sources requiring mocking
-6. **Read provider-specific reference** based on detection:
-   - AWS → Read `reference/cloud-providers-aws.md`
-   - Azure → Read `reference/cloud-providers-azure.md`
-   - GCP → Read `reference/cloud-providers-gcp.md`
-   - STACKIT → Read `reference/cloud-providers-stackit.md`
-   - Multiple providers → Read all applicable files
-
-**Phase 3 - Test Generation:**
-7. Generate unit tests with mock providers
-8. Generate integration tests with real providers
-9. Generate mock tests with override patterns
-10. Generate validation tests (if validations exist in code)
-11. Generate compliance tests (per user requirements)
-12. Apply advanced patterns (if complex patterns detected)
-13. Generate multi-provider tests (if multiple providers used)
-
-**Phase 4 - Documentation & Verification:**
-14. Create coverage report and README
-15. Verify against `reference/verification-checklist.md`
+1. Collect variable values and compliance requirements (defaults below).
+2. Read and analyze all `.tf` files in the provided directory.
+3. Read `reference/anti-patterns.md`.
+4. Detect provider(s) and list data sources that need mocking.
+5. Read the matching `reference/cloud-providers-*.md` file(s) for any detected provider.
+6. Generate unit tests with mock providers.
+7. Generate integration tests with real providers.
+8. Generate mock tests with override patterns.
+9. Generate validation tests if the module has `validation`/`precondition`/`postcondition`/`check` blocks.
+10. Generate compliance tests per user requirements (defaults if none specified).
+11. Apply advanced or multi-provider patterns if the module needs them.
+12. Write COVERAGE.md and README.md.
+13. Verify against the Final Verification checklist below.
 
 ## STEP 1: Collect User Requirements
 
@@ -107,25 +72,31 @@ Consider using TodoWrite tool to track progress for complex test generation work
 **1. Variable Values:**
 Ask: "Do you have a .tfvars file or sample variable values? If not, I'll use safe test values based on your variable declarations."
 
-**Default Behavior**: If user doesn't provide values, extract defaults from `variable` blocks and modify them to prevent resource name conflicts:
+**Default Behavior**: If the user doesn't provide values, extract defaults from `variable` blocks and transform them so the test suite cannot collide with real infrastructure if an integration test is run by accident.
 
-**⚠️ CRITICAL - Prevent Resource Name Conflicts:**
-- **ALWAYS** modify naming variables to avoid clashing with real resources
-- Change environment to test-specific values: `prod` → `test`, `production` → `test`, `dev` → `test-dev`
-- Add prefix/suffix to resource names: `my-vpc` → `test-my-vpc` or `my-vpc-test`
-- Use unique identifiers when possible: Add timestamp or random suffix
+**Environment value — depends on the module's validation block:**
+- If the module restricts `var.environment` to a set like `["dev", "staging", "prod", "test"]`, pick `"test"` (it's the only safe choice in standard lists).
+- If the module has no validation on environment, use `"tftest-<short-rand>"` (e.g. `"tftest-x9k2"`) — this is clearly synthetic and unlikely to collide with any real `Environment` tag.
+- Bare `"test"` is risky as a universal default because many organizations use it as a real environment name.
+
+**Resource names — always uniquify:**
+- Add a `test-` prefix to every naming variable: `my-vpc` → `test-my-vpc`.
+- Append a short random suffix when name collisions matter (e.g. globally unique buckets, DNS records): `test-my-bucket-x9k2`. This is the primary safety mechanism — real resources can't collide even if the env tag does.
 
 Example transformation:
 ```
 # Original/Production values
-region = "eu-west-1"
+region      = "eu-west-1"
 environment = "prod"
-vpc_name = "my-production-vpc"
+vpc_name    = "my-production-vpc"
 
-# Safe test values (prevent conflicts)
-region = "eu-west-1"
-environment = "test"  # Changed from "prod"
-vpc_name = "test-my-vpc"  # Added "test-" prefix
+# Safe test values
+region      = "eu-west-1"
+environment = "test"           # module validation accepts ["dev","staging","prod","test"]
+vpc_name    = "test-my-vpc-x9k2"
+
+# If the module had no env validation:
+# environment = "tftest-x9k2"
 ```
 
 **2. Compliance Requirements:**
@@ -156,18 +127,11 @@ Read all `.tf` files in the provided directory and identify:
    - GCP: `provider "google"`, resources `google_*`
    - STACKIT: `provider "stackit"`, resources `stackit_*`
 
-2. **Data Sources** (CRITICAL): All `data "provider_type" "name"` declarations
-   - Create a list - these MUST be mocked in unit/mock tests
-   - **Important**: Also check for data sources in:
-     - `dynamic` blocks
-     - Conditional data sources (with `count` or `for_each`)
-     - Module calls (mock at module level with `override_module`)
-   - See provider-specific files for mocking patterns
-
-   **Detection Pattern**: Use Grep to find all data sources:
-   ```
+2. **Data sources**: every `data "provider_type" "name"` block. These all need mocking in unit/mock tests. Use grep to enumerate:
+   ```bash
    grep -r 'data "' --include="*.tf"
    ```
+   Look inside `dynamic` blocks, conditional data sources (`count`/`for_each`), and module calls — for module data sources, mock at the module level with `override_module`.
 
 3. **Resources**: All `resource` declarations
 4. **Variables**: All `variable` declarations (note any with `validation` blocks)
@@ -180,26 +144,6 @@ After detection, read the appropriate provider-specific file:
    - Azure: `reference/cloud-providers-azure.md`
    - GCP: `reference/cloud-providers-gcp.md`
    - STACKIT: `reference/cloud-providers-stackit.md`
-
-## STEP 2.5: READ Anti-Patterns (MANDATORY)
-
-**⚠️ STOP - Read `reference/anti-patterns.md` before proceeding!**
-
-Confirm understanding of:
-1. **Command Selection**: Never test computed attributes with `command = plan`
-2. **Mock Providers**: Always define AND reference in `providers = {}`
-3. **Assertions**: Never index sets with `[0]`, never multi-line conditions
-4. **Data Sources**: Never forget to mock in unit tests
-
-### Verification Before Writing Tests
-
-- [ ] Read and understand all anti-patterns
-- [ ] Know computed vs static attributes
-- [ ] Know when to use `plan` vs `apply`
-- [ ] Know how to handle set-type attributes (use `for`)
-- [ ] Identified ALL data sources
-
-**DO NOT PROCEED until confirmed.**
 
 ## STEP 3: Command Selection Logic
 
@@ -219,10 +163,15 @@ Confirm understanding of:
 
 **Key requirements:**
 - Use `command = plan`
-- Define mock_provider and reference in `providers = {}`
-- ALWAYS add `override_data` for ALL data sources
-- Test configuration logic, NOT computed values
+- Define `mock_provider` and reference it in each run's `providers = {}` block
+- Mock every data source with `override_data` inside each `run` block (default — see note below)
+- Test configuration logic, not computed values
 - One file per feature with multiple scenarios
+
+**`override_data` vs `mock_data` — when to pick which:**
+- `override_data { target = data.X.Y ... }` lives inside a `run` block. Each scenario can mock different values, so this is the right default whenever your tests probe different conditions (different AZ counts, AMI variants, etc.).
+- `mock_data "X" {...}` inside the `mock_provider` block is file-level — every run in that file sees the same mocked values. It's not wrong; it's the right choice when a data source's mock is genuinely uniform across all scenarios.
+- Default to `override_data` because it scales as scenarios are added without restructuring the file. Use `mock_data` only when you've confirmed no scenario needs a per-run value.
 
 **See template and provider-specific reference files for complete examples.**
 
@@ -274,67 +223,34 @@ Confirm understanding of:
 2. Read `reference/compliance-patterns.md`
 3. Test: tagging, encryption, network security, IAM, logging, backups
 
-## STEP 9 (Optional): Apply Advanced Testing Patterns
+## STEP 9 — Advanced patterns (rare; opt-in)
 
-**Pre-Check:** Only if module has dynamic blocks, complex for_each, nested expressions, or complex conditionals.
+Skip this step for the vast majority of modules. **Only** if you've identified dynamic blocks, deeply nested `for_each`, or complex ternary logic that the standard templates don't cover, open `templates/advanced/advanced-patterns-template.hcl` for additional patterns and weave them into the existing unit/integration files (don't create a separate `advanced_*.tftest.hcl`).
 
-**If YES:**
-1. Read `templates/advanced-patterns-template.hcl`
-2. Incorporate patterns for: set-type attributes, dynamic blocks, conditionals, complex ternary logic
-3. Enhance existing tests (don't create separate files)
+If the module is straightforward — and most are — do not read this template. It exists for genuinely complex modules and adds noise otherwise.
 
-## STEP 10 (Optional): Multi-Cloud and Multi-Region Testing
+## STEP 10 — Multi-cloud / provider aliases (rare; opt-in)
 
-**Pre-Check:** Only if module uses multiple cloud providers or provider aliases for multi-region.
+Skip this step unless the module declares more than one provider (e.g. both `aws` and `azurerm`) or uses provider aliases for multi-region. In that case, open `templates/advanced/multi-provider-template.hcl`, mock every provider, and write `tests/multi_provider_<scenario>.tftest.hcl` files that exercise cross-provider consistency.
 
-**If YES:**
-1. Read `templates/multi-provider-template.hcl`
-2. File naming: `tests/multi_provider_<scenario>.tftest.hcl`
-3. Mock ALL providers and test cross-cloud consistency
+A single-provider module needs nothing from this template — don't read it.
 
-## ⚠️ CRITICAL: Integration Test Cost & Safety Warning
+## Integration Test Cost & Safety Warning
 
-**ALWAYS Include in Generated README:**
+Integration tests create real cloud resources and incur cost. The generated `tests/README.md` must include:
+- A warning that integration tests provision real resources
+- Pre-flight checks (verify variable values, set billing alerts, use a test account)
+- Best practice: run unit tests for free, use integration tests sparingly, clean up after failures
 
-Integration tests create REAL resources and incur costs. Include this in `tests/README.md`:
-- Warning about real resources and costs
-- Pre-flight checks (verify variable values, set billing alerts, use test accounts)
-- Best practices (run unit tests for free, use integration sparingly, clean up failures)
-
-**Resource naming:** Transform all values to prevent conflicts (prod→test, add test- prefix, use unique IDs).
+Transform resource names to prevent conflicts with real infrastructure (prod→test, add `test-` prefix, use unique suffixes where appropriate).
 
 ## Error Handling
 
-### Common Issues and Resolutions
-
-**1. Terraform Syntax Errors**
-- If Terraform files contain syntax errors:
-  - Inform user of the specific error location
-  - Ask user to fix the syntax errors first
-  - Do NOT attempt to fix Terraform code - only generate tests for valid code
-
-**2. Provider Detection Issues**
-- If multiple providers detected (e.g., AWS + Azure):
-  - List all detected providers to user
-  - Ask which provider to prioritize or test all
-  - Generate separate test files per provider when testing multiple
-
-**3. Data Source Detection Edge Cases**
-- Check inside `dynamic` blocks for data sources
-- Note conditional data sources (`count` or `for_each`)
-- For module data sources: Use `override_module` instead of `override_data`
-
-**4. Invalid Variable Values**
-- If user-provided tfvars have invalid values:
-  - Validate against variable type constraints
-  - Check for validation blocks and respect their rules
-  - Inform user of specific validation failures
-
-**5. Missing Required Variables**
-- If Terraform code has required variables without defaults:
-  - Extract variable list from code
-  - Ask user for values OR use safe placeholder values
-  - Document which variables need real values for integration tests
+- **Syntax errors in the module:** report the location and ask the user to fix them first. Don't edit user Terraform — generate tests only against valid input.
+- **Multiple providers detected:** list them and ask which to prioritize (or generate one test file set per provider).
+- **Data sources in `dynamic` blocks, with `count`/`for_each`, or from modules:** mock them too. Module data sources use `override_module` instead of `override_data`.
+- **Invalid `.tfvars` values:** validate against variable type constraints and `validation` blocks; report the specific failure.
+- **Required variables without defaults:** ask the user for values, or use safe placeholders and document which variables need real values for integration tests.
 
 ## STEP 11: Create Documentation
 
@@ -344,15 +260,13 @@ Integration tests create REAL resources and incur costs. Include this in `tests/
 - Compliance checklist
 
 **`tests/README.md`:**
-- Overview and prerequisites (see Terraform version requirements below)
-- Running tests: Use CORRECT command syntax (see "Terraform Test Command Syntax" section)
-  - `terraform test` (all tests)
-  - `terraform test tests/unit_*.tftest.hcl` (specific type)
-  - `terraform test -verbose` (with verbose output)
-  - **NEVER use `-filter` with wildcards** (not supported)
+- Overview and prerequisites (see version compatibility below)
+- Running tests: file-path patterns only — `terraform test`, `terraform test tests/unit_*.tftest.hcl`, `terraform test -verbose`. See "Terraform/OpenTofu Test Command Syntax" below.
 - Test organization
 - Compliance requirements
-- **Cost and safety warnings** (see cost warning section above)
+- Cost and safety warnings (see cost warning section above)
+
+After writing the README, grep it for `-filter` — if present, rewrite using file-path patterns. The `-filter` flag is for run-block name selection, not for file selection, and including it in user-facing docs leads readers to use it incorrectly.
 
 ## Terraform/OpenTofu Version Compatibility
 
@@ -382,101 +296,35 @@ Include version requirements in tests/README.md:
 
 ## Terraform/OpenTofu Test Command Syntax
 
-### CRITICAL: Correct Command Syntax for Running Tests
+For test selection in generated READMEs, use **file-path patterns**, not `-filter`. The `-filter` flag matches run-block names (not files), so file-path patterns are both clearer and shell-portable.
 
-**⚠️ IMPORTANT:** The `terraform test` / `tofu test` command does NOT support wildcard patterns with the `-filter` flag.
-
-### ❌ INCORRECT - DO NOT USE IN DOCUMENTATION:
 ```bash
-# These commands DO NOT WORK and should NEVER be included in READMEs
-terraform test -filter=unit_*
-tofu test -filter=unit_*
-```
+# Run everything
+terraform test                                # or: tofu test
 
-The `-filter` flag expects exact run block names, not file patterns.
-
-### ✅ CORRECT - Use in All Generated Documentation:
-
-**Running All Tests:**
-```bash
-terraform test  # or: tofu test
-```
-
-**Running Specific Test Files by Pattern:**
-```bash
-# Use shell wildcards with file paths
-terraform test tests/unit_*.tftest.hcl          # or: tofu test tests/unit_*.tftest.hcl
-terraform test tests/integration_*.tftest.hcl   # or: tofu test tests/integration_*.tftest.hcl
-```
-
-**Running Multiple Test Types:**
-```bash
+# Run by test type — use shell glob, not -filter
+terraform test tests/unit_*.tftest.hcl        # or: tofu test tests/unit_*.tftest.hcl
+terraform test tests/integration_*.tftest.hcl
 terraform test tests/{unit,mock,validation,compliance}_*.tftest.hcl
-# or: tofu test tests/{unit,mock,validation,compliance}_*.tftest.hcl
+
+# Useful flags
+terraform test -verbose
+terraform test -cleanup=false                 # debugging only
 ```
 
-**With Verbose Output:**
-```bash
-terraform test -verbose  # or: tofu test -verbose
-```
-
-**With Cleanup Disabled (debugging only):**
-```bash
-terraform test -cleanup=false  # or: tofu test -cleanup=false
-```
-
-### Documentation Requirements
-
-When generating `tests/README.md` files:
-- ✅ Show both `terraform test` and `tofu test` commands
-- ✅ ALWAYS use file path patterns: `terraform test tests/unit_*.tftest.hcl`
-- ✅ NEVER use `-filter` with wildcards
-- ✅ Include examples of verbose and cleanup flags
+Always include both `terraform test` and `tofu test` forms in generated docs (they're interchangeable). Never emit `-filter` in a generated README — even with an exact name it's brittle and discourages glob-based selection.
 
 ## STEP 12: Final Verification
 
-Before marking complete, verify against `reference/verification-checklist.md`:
+Before reporting the suite as complete, confirm:
+- Anti-patterns reference was read
+- Every data source is mocked in unit tests
+- No `command = plan` block asserts on `.id` / `.arn` / other computed attributes
+- No `[0]` indexing on set-type attributes (security_group ingress/egress)
+- All assert conditions are single-line
+- Every run block provides all required module variables
+- Every unit-test run binds the mock provider via `providers = { ... }`
+- The generated README contains no `-filter` invocations
+- COVERAGE.md and README.md exist under `tests/`
 
-### Must-Haves
-- ✅ Read `reference/anti-patterns.md`
-- ✅ ALL data sources mocked in unit tests
-- ✅ NO computed attributes with `command = plan`
-- ✅ NO `[0]` indexing on set-type attributes
-- ✅ NO multi-line assert conditions
-- ✅ ALL required variables in every test
-- ✅ Mock provider defined AND referenced
-
-**See `reference/verification-checklist.md` for complete checklist.**
-
-## Quick Reference
-
-### File Structure
-```
-tests/
-├── unit_*.tftest.hcl               # Mock provider, command=plan
-├── integration_*.tftest.hcl        # Real provider, command=apply
-├── mock_*.tftest.hcl               # Overrides, command=plan
-├── validation_*.tftest.hcl         # expect_failures tests (if validations exist)
-├── compliance_*.tftest.hcl         # Security/compliance tests (if applicable)
-├── multi_provider_*.tftest.hcl     # Multi-cloud tests (if multiple providers)
-├── COVERAGE.md                     # Coverage report
-└── README.md                       # Documentation
-```
-
-### Command Selection
-- `plan`: Configuration, variables, locals, static values
-- `apply`: Computed attributes (IDs, ARNs), outputs, cross-resource refs
-- See `reference/anti-patterns.md` for detailed rules
-
-### Common Patterns & Templates
-- **Core Templates:** `unit-test-template.hcl`, `integration-test-template.hcl`, `mock-test-template.hcl`
-- **Advanced Templates:** `validation-test-template.hcl`, `compliance-test-template.hcl`, `advanced-patterns-template.hcl`, `multi-provider-template.hcl`
-- Mock providers: `reference/syntax-examples.md`
-- Cloud-specific: `cloud-providers-aws.md`, `cloud-providers-azure.md`, `cloud-providers-gcp.md`, `cloud-providers-stackit.md`
-- Compliance tests: `reference/compliance-patterns.md`
-- Validation detection: `reference/validation-patterns.md`
-- Anti-patterns: `reference/anti-patterns.md` (MANDATORY READ)
-
----
-
-**Remember:** Use TodoWrite to track progress. Only complete, verified test suites are acceptable.
+If any check fails, fix it before returning the suite. Partial or unverified output forces the user to debug both their module and the generator.
