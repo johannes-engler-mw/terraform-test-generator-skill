@@ -35,6 +35,12 @@ tests/*.log
 tests/results/
 *.test
 
+# Skill-creator workspace (regenerable iteration outputs, transcripts, grading)
+terraform-test-generator-workspace/
+
+# Stale eval artifacts (manual-experiment leftovers, not eval inputs)
+evals/test-modules/*-baseline/
+
 # Temporary Files
 *.tmp
 *.bak
