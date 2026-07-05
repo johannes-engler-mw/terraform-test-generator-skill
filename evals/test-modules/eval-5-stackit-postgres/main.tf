@@ -12,17 +12,17 @@ provider "stackit" {
   region = var.region
 }
 
-data "stackit_project" "current" {
+data "stackit_resourcemanager_project" "current" {
   project_id = var.project_id
 }
 
 resource "stackit_objectstorage_bucket" "data" {
-  project_id = data.stackit_project.current.project_id
+  project_id = data.stackit_resourcemanager_project.current.project_id
   name       = "${var.instance_name}-data"
 }
 
 resource "stackit_postgresflex_instance" "db" {
-  project_id      = data.stackit_project.current.project_id
+  project_id      = data.stackit_resourcemanager_project.current.project_id
   name            = var.instance_name
   acl             = var.acl
   backup_schedule = var.backup_schedule

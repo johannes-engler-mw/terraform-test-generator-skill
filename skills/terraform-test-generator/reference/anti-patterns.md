@@ -21,7 +21,7 @@ run "test_security_group" {
   command = plan  # Plan cannot access computed attributes
 
   assert {
-    condition = aws_security_group.lambda_sg.name_prefix == "test"  # FAILS
+    condition = aws_security_group.lambda_sg.arn != null  # FAILS - unknown during plan
     error_message = "This will always fail"
   }
 }
@@ -63,8 +63,14 @@ run "test_configuration" {
 }
 
 # ✅ CORRECT - Use apply for computed attributes
+# Against a mock_provider this creates NO real infrastructure — the mock
+# fabricates the computed values, so unit tests can use mocked apply for free.
 run "test_resource_creation" {
   command = apply
+
+  providers = {
+    aws = aws.mock
+  }
 
   assert {
     condition = aws_s3_bucket.main.id != null  # OK with apply
@@ -75,16 +81,18 @@ run "test_resource_creation" {
 
 ## Mock Provider Anti-Patterns
 
-### `mock_data` vs `override_data` — not a real anti-pattern
+### `mock_data` vs `override_data` — default to `override_data`
 
-A common mistake when reading other people's tests is calling `mock_data` inside `mock_provider` "wrong". It isn't. The two mechanisms solve different problems:
+Both mechanisms mock a data source; they differ in scope, and the scope is what trips people up:
 
 | Mechanism | Scope | When it's right |
 |-----------|-------|-----------------|
-| `override_data { target = data.X.Y ... }` inside a `run` block | Per-scenario | Different runs need different mocked values (different AZ counts, AMI variants, region-specific responses). This is the default for generated tests because new scenarios can be added without restructuring the file. |
-| `mock_data "X" {...}` inside `mock_provider {}` | File-level (all runs in the file) | Every run in the file sees the same mock values. Reduces repetition when there's no per-run variation. |
+| `override_data { target = data.X.Y ... }` inside a `run` block | Per-run | **The default for generated tests.** Each run can mock different values (different AZ counts, AMI variants), new scenarios slot in without restructuring the file, and the mock is visible to the command that consumes it. |
+| `mock_data "X" {...}` inside `mock_provider {}` | File-level (every run in the file) | A deliberate opt-in — only after you've written the `override_data` form and confirmed no run will ever need a different value. |
 
-The generated test suite defaults to `override_data` for portability and easier evolution. Reach for file-level `mock_data` only when you've checked that no scenario needs a different value — otherwise you'll end up rewriting later.
+**Why default to `override_data`:** file-level `mock_data` pins one set of values across every run in the file. The moment a later run needs a different value (a different AMI, a one-AZ region, a paginated response), you have to restructure the file to recover per-run variation. Per-run `override_data` keeps each scenario self-contained, so adding a scenario never touches the others.
+
+**Use file-level `mock_data` only when** you can name — in a comment next to the block — why the value is uniform across every run in the file. Otherwise reach for `override_data`.
 
 ### Anti-Pattern: Using Overrides Without Mock Provider
 
@@ -204,9 +212,18 @@ assert {
 
 The same rule applies to `egress`, SSE rule sets, and any nested set block. List-typed attributes (e.g. `versioning_configuration[0]`, `root_block_device[0]`) are fine to index — only sets are forbidden.
 
+**Known set-type blocks — never `[0]` these:**
+
+| Resource | Set-type attribute |
+|----------|--------------------|
+| `aws_security_group` | `ingress`, `egress` |
+| `aws_s3_bucket_server_side_encryption_configuration` | `rule` (fails at runtime with `Cannot index a set value`) |
+
+Schemas differ per provider — on `google_storage_bucket`, `encryption` and `versioning` are single-element **lists**, so `[0]` is valid there. When you aren't certain a nested block is a list, use the `for` expression: it is correct for both sets and lists, so it never needs the schema check.
+
 ### Anti-Pattern: multi-line `condition` expressions
 
-`condition = ...` must be a single line. Terraform parses the assertion line-by-line and a multi-line expression silently breaks the assert.
+Keep `condition = ...` on a single line. HCL rejects an expression that wraps across lines unless the break falls inside brackets or the whole expression is parenthesized — an unparenthesized line-wrap is a parse error. Single-line conditions keep generated suites uniform and greppable.
 
 ```hcl
 # ❌ WRONG — line-wrapped condition
@@ -224,7 +241,41 @@ assert {
 }
 ```
 
-For genuinely complex conditions, extract intermediate values into the module's `locals` and assert on those — both more readable and parseable.
+For genuinely complex conditions, extract intermediate values into the **module's** `locals` (in its `.tf` files) and assert on those — both more readable and parseable. Never add a `locals` block to the test file itself; see the next section.
+
+### Anti-Pattern: top-level `locals {}` blocks in `.tftest.hcl` files
+
+`locals` is not a valid block type in test files. `terraform init` fails with `Error: Unsupported block type` and the **entire suite** becomes unrunnable — one bad file blocks every test.
+
+```hcl
+# ❌ WRONG — locals is not a valid tftest block; init rejects the whole suite
+locals {
+  common_tags = {
+    Environment = "test"
+    Project     = "test-project"
+  }
+}
+
+run "test_tags" {
+  variables {
+    tags = local.common_tags   # never evaluated — init already failed
+  }
+}
+
+# ✅ CORRECT — shared values go in a top-level variables block
+variables {
+  tags = {
+    Environment = "test"
+    Project     = "test-project"
+  }
+}
+
+run "test_tags" {
+  # inherits file-level variables; override per-run as needed
+}
+```
+
+Valid top-level blocks in a `.tftest.hcl` file: `run`, `variables`, `provider`, `mock_provider`, and the `override_*` blocks. Anything else (`locals`, `resource`, `output`) is a config-file construct and belongs in the module, not the test.
 
 ## Variable Testing Anti-Patterns
 
@@ -373,23 +424,26 @@ run "test_with_entra_groups" {
 
 ## Documentation Anti-Patterns
 
-### Anti-Pattern: Using `-filter` in generated READMEs
+### Anti-Pattern: positional file arguments in generated READMEs
 
 ```bash
-# ❌ WRONG — these encourage brittle test selection
-terraform test -filter=unit_*
-terraform test -filter=unit_vpc_networking.tftest.hcl
+# ❌ WRONG — both tools silently IGNORE positional file arguments and run the ENTIRE suite
+terraform test tests/unit_vpc_networking.tftest.hcl
+terraform test tests/unit_*.tftest.hcl
 ```
 
-The `-filter` flag matches run-block *names*, not files. Even with an exact filename it works only by coincidence (if the run block happens to share the basename). Shell glob patterns on file paths are always clearer and more portable.
+There is no error: the command *appears* to work, but every test file runs — including `integration_*.tftest.hcl` files that `apply` real infrastructure. A reader following "run only the free unit tests" would create real resources and incur costs.
 
 ```bash
-# ✅ CORRECT
-terraform test                                # run everything
-terraform test tests/unit_*.tftest.hcl        # run by type
+# ✅ CORRECT — -filter is the file-selection flag; repeat it for several files
+terraform test                                                      # run everything
+terraform test -filter=tests/unit_vpc_networking.tftest.hcl         # run one file
+terraform test -filter=tests/unit_vpc.tftest.hcl -filter=tests/unit_sg.tftest.hcl   # run several
 ```
 
-Never emit `-filter` in user-facing documentation.
+In generated READMEs, enumerate the actual files with repeated `-filter` flags (portable to every shell). For local POSIX-shell convenience a glob can expand into repeated flags — `terraform test $(printf -- '-filter=%s ' tests/unit_*.tftest.hcl)` — but don't make that the primary documented form.
+
+Never emit positional test-file arguments in user-facing documentation. Also never emit `-cleanup=false` — no such flag exists in either tool.
 
 ## Quick Reference: What to Test with Each Command
 
@@ -403,7 +457,11 @@ Never emit `-filter` in user-facing documentation.
 - Cross-resource references whose target is computed (`aws_s3_bucket_versioning.this.bucket = aws_s3_bucket.this.id`)
 - Anything only known after resource creation
 
-`command = apply` covers everything `plan` does plus the computed attributes — but creates real resources, so reserve it for integration tests.
+`command = apply` covers everything `plan` does plus the computed attributes. What it creates depends on the provider:
+- Against a `mock_provider`: **nothing is created** — computed values are fabricated. Unit tests can use mocked `apply` runs to cover IDs/ARNs for free.
+- Against a real provider: real resources and real costs — reserve for integration tests.
+
+Terraform 1.9+ alternative: set `override_during = plan` on an `override_resource`/`override_data`/`override_module` block to make its `values` visible during plan. OpenTofu (as of 1.11) rejects `override_during`, so prefer mocked `apply` when the suite must run under both tools.
 
 ## Mandatory Pre-Generation Checklist
 
@@ -414,4 +472,4 @@ Before writing ANY assert statement, ask:
 3. **If YES to #2:** Is this attribute computed or does it reference another resource's ID/ARN?
 4. **If YES to #3:** ⛔ STOP - This will fail!
 
-**When in doubt:** Use `command = apply` for integration tests, or test configuration structure instead of computed attributes.
+**When in doubt:** Use a mocked `command = apply` run (creates nothing) for computed attributes, or test configuration structure under `plan` instead. Real-provider `apply` belongs only in integration tests.

@@ -87,12 +87,15 @@ override_data {
 
 ## Naming-convention quirks
 
-S3 bucket names are **globally unique** across all AWS accounts. Generated integration-test bucket names must include a unique suffix (timestamp, random ID) to avoid collisions with real buckets.
+S3 bucket names are **globally unique** across all AWS accounts. Generated integration-test bucket names must include a unique suffix (random ID) to avoid collisions with real buckets.
 
 ```hcl
-# ✅ Avoids collision with any real bucket
-bucket = "test-myapp-${formatdate("YYYYMMDDHHmm", timestamp())}"
+# ✅ Avoids collision with any real bucket — pass a unique suffix in as a variable
+bucket = "test-myapp-${var.test_suffix}"
+# e.g. terraform test -var 'test_suffix=x9k2', or a tests/setup module using random_pet
 ```
+
+Avoid `timestamp()` or `uuid()` in resource names: they change on every plan, forcing replacement whenever a test file contains more than one `apply` run.
 
 Lambda function names, IAM role names, and CloudWatch log group names also have global-per-account-per-region uniqueness; apply the same suffix pattern.
 

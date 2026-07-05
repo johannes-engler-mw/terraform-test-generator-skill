@@ -44,9 +44,11 @@ mock_provider "stackit" {
 
 ## Data source mocking
 
+Note: the provider has **no** `stackit_project` data source — project lookups go through `stackit_resourcemanager_project`.
+
 ```hcl
 override_data {
-  target = data.stackit_project.current
+  target = data.stackit_resourcemanager_project.current
   values = {
     project_id = "test-project-456"
     name       = "test-project"

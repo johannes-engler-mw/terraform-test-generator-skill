@@ -71,15 +71,16 @@ terraform-test-generator-skill/
 │   └── marketplace.json      # Marketplace configuration
 ├── skills/
 │   └── terraform-test-generator/
-│       ├── skill.md          # Main skill definition
+│       ├── SKILL.md          # Main skill definition
 │       ├── templates/        # HCL test templates
 │       │   ├── unit-test-template.hcl           # Core: Configuration testing
 │       │   ├── integration-test-template.hcl    # Core: Real resource testing
 │       │   ├── mock-test-template.hcl           # Core: Override patterns
 │       │   ├── validation-test-template.hcl     # Advanced: expect_failures
 │       │   ├── compliance-test-template.hcl     # Advanced: Security/compliance
-│       │   ├── advanced-patterns-template.hcl   # Advanced: Complex scenarios
-│       │   └── multi-provider-template.hcl      # Advanced: Multi-cloud
+│       │   └── advanced/
+│       │       ├── advanced-patterns-template.hcl   # Advanced: Complex scenarios
+│       │       └── multi-provider-template.hcl      # Advanced: Multi-cloud
 │       └── reference/        # Best practices and patterns
 │           ├── anti-patterns.md
 │           ├── cloud-providers-aws.md
@@ -87,9 +88,8 @@ terraform-test-generator-skill/
 │           ├── cloud-providers-gcp.md
 │           ├── cloud-providers-stackit.md
 │           ├── compliance-patterns.md
-│           ├── syntax-examples.md
-│           ├── validation-patterns.md
-│           └── verification-checklist.md
+│           └── validation-patterns.md
+├── evals/                    # Eval suite (skill-creator scaffolding)
 ├── example/                  # Example Terraform module with tests
 ├── README.md
 └── LICENSE
@@ -98,7 +98,7 @@ terraform-test-generator-skill/
 ## Requirements
 
 - Claude Code 1.0 or higher
-- Terraform 1.6.0+ or OpenTofu 1.6.0+
+- Terraform 1.7.0+ or OpenTofu 1.7.0+ (test framework with mock providers)
 - Terraform/OpenTofu configuration files
 
 ## Example Output
@@ -109,10 +109,11 @@ your-module/
 ├── variables.tf
 ├── outputs.tf
 ├── tests/
-│   ├── basic_unit_test.tftest.hcl
-│   ├── full_deployment_integration.tftest.hcl
-│   ├── data_sources.tfmock.hcl
-│   ├── input_validation.tftest.hcl
+│   ├── unit_networking.tftest.hcl
+│   ├── integration_full_deployment.tftest.hcl
+│   ├── mock_data_sources.tftest.hcl
+│   ├── validation_variable_rules.tftest.hcl
+│   ├── compliance_security.tftest.hcl
 │   ├── README.md
 │   └── COVERAGE.md
 ```

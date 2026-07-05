@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-# verify_eval.sh — Programmatic verification of terraform-test-generator skill output
+# verify_eval.sh — Quick programmatic verification of terraform-test-generator output
 #
 # Usage: ./verify_eval.sh <eval-number> <tests-directory>
 # Example: ./verify_eval.sh 1 ./test-modules/eval-1-aws-vpc/tests/
 #
-# Checks common expectations that can be verified via file inspection.
-# Returns exit code 0 if all checks pass, 1 if any fail.
+# Convenience smoke-checker. The canonical, per-expectation grader is
+# grade_run.py — it does content-based classification and full dispatch.
+# This script checks only OBJECTIVE quality criteria (no naming/doc
+# conventions): anti-patterns, functional mocking, invented CLI flags,
+# positional test-file arguments in docs, and the execution check.
 
-set -euo pipefail
+# No -e: this is a check-runner — individual greps are expected to "fail" (no match),
+# every check records its own pass/fail, and the exit code is set explicitly at the end.
+set -uo pipefail
 
 EVAL_NUM="${1:?Usage: $0 <eval-number> <tests-directory>}"
 TESTS_DIR="${2:?Usage: $0 <eval-number> <tests-directory>}"
@@ -23,18 +28,18 @@ check() {
 
   if [[ "$result" == "pass" ]]; then
     echo "  ✅ PASS: $description"
-    ((PASS++))
+    PASS=$((PASS+1))
   else
     echo "  ❌ FAIL: $description"
     [[ -n "$detail" ]] && echo "         → $detail"
-    ((FAIL++))
+    FAIL=$((FAIL+1))
   fi
 }
 
 warn() {
   local description="$1"
   echo "  ⚠️  WARN: $description"
-  ((WARN++))
+  WARN=$((WARN+1))
 }
 
 echo "═══════════════════════════════════════════════════════"
@@ -48,90 +53,35 @@ if [[ ! -d "$TESTS_DIR" ]]; then
   exit 1
 fi
 
-# ─── File Structure Checks ───────────────────────────────
+# ─── File Structure ──────────────────────────────────────
 echo "📁 File Structure"
 
-# Check unit tests exist
-UNIT_FILES=$(find "$TESTS_DIR" -name "unit_*.tftest.hcl" 2>/dev/null | wc -l)
-if [[ $UNIT_FILES -gt 0 ]]; then
-  check "Unit test files exist (unit_*.tftest.hcl)" "pass"
+TF_FILES=$(find "$TESTS_DIR" -name "*.tftest.hcl" 2>/dev/null | wc -l)
+if [[ $TF_FILES -gt 0 ]]; then
+  check "Test files exist (*.tftest.hcl, any naming)" "pass"
 else
-  check "Unit test files exist (unit_*.tftest.hcl)" "fail" "No unit test files found"
+  check "Test files exist (*.tftest.hcl, any naming)" "fail" "No .tftest.hcl files found"
+  exit 1
 fi
 
-# Check integration tests exist
-INT_FILES=$(find "$TESTS_DIR" -name "integration_*.tftest.hcl" 2>/dev/null | wc -l)
-if [[ $INT_FILES -gt 0 ]]; then
-  check "Integration test files exist" "pass"
-else
-  check "Integration test files exist" "fail" "No integration test files found"
-fi
-
-# Check compliance tests exist
-COMP_FILES=$(find "$TESTS_DIR" -name "compliance_*.tftest.hcl" 2>/dev/null | wc -l)
-if [[ $COMP_FILES -gt 0 ]]; then
-  check "Compliance test files exist" "pass"
-else
-  check "Compliance test files exist" "fail" "No compliance test files found"
-fi
-
-# Check README exists
-if [[ -f "$TESTS_DIR/README.md" ]]; then
-  check "README.md exists" "pass"
-else
-  check "README.md exists" "fail"
-fi
-
-# Check COVERAGE exists
-if [[ -f "$TESTS_DIR/COVERAGE.md" ]]; then
-  check "COVERAGE.md exists" "pass"
-else
-  check "COVERAGE.md exists" "fail"
-fi
-
-# ─── Eval-Specific File Checks ───────────────────────────
+# ─── Eval-Specific Checks (content-based) ────────────────
 echo ""
 echo "📋 Eval-Specific Checks"
 
-if [[ "$EVAL_NUM" == "1" ]]; then
-  # Eval 1: Should have validation and mock tests
-  MOCK_FILES=$(find "$TESTS_DIR" -name "mock_*.tftest.hcl" -o -name "mock_*.tfmock.hcl" 2>/dev/null | wc -l)
-  if [[ $MOCK_FILES -gt 0 ]]; then
-    check "Mock test files exist (eval 1 has data sources)" "pass"
+if [[ "$EVAL_NUM" == "3" ]]; then
+  # Eval 3: module has no validation blocks and no data sources — lean output expected
+  EF_HITS=$(grep -rl 'expect_failures' "$TESTS_DIR" --include="*.tftest.hcl" 2>/dev/null | wc -l)
+  if [[ $EF_HITS -eq 0 ]]; then
+    check "No validation tests (module has no validation blocks)" "pass"
   else
-    check "Mock test files exist (eval 1 has data sources)" "fail"
+    check "No validation tests (module has no validation blocks)" "fail" "expect_failures found in $EF_HITS files"
   fi
 
-  VAL_FILES=$(find "$TESTS_DIR" -name "validation_*.tftest.hcl" 2>/dev/null | wc -l)
-  if [[ $VAL_FILES -gt 0 ]]; then
-    check "Validation test files exist (eval 1 has validations)" "pass"
+  DS_MOCKS=$(grep -rlE 'override_data|mock_data' "$TESTS_DIR" --include="*.tftest.hcl" 2>/dev/null | wc -l)
+  if [[ $DS_MOCKS -eq 0 ]]; then
+    check "No data-source mocking (module has no data sources)" "pass"
   else
-    check "Validation test files exist (eval 1 has validations)" "fail"
-  fi
-
-elif [[ "$EVAL_NUM" == "2" ]]; then
-  # Eval 2: Should have validation tests (has validation blocks)
-  VAL_FILES=$(find "$TESTS_DIR" -name "validation_*.tftest.hcl" 2>/dev/null | wc -l)
-  if [[ $VAL_FILES -gt 0 ]]; then
-    check "Validation test files exist (eval 2 has validations)" "pass"
-  else
-    check "Validation test files exist (eval 2 has validations)" "fail"
-  fi
-
-elif [[ "$EVAL_NUM" == "3" ]]; then
-  # Eval 3: Should NOT have validation or mock tests
-  VAL_FILES=$(find "$TESTS_DIR" -name "validation_*.tftest.hcl" 2>/dev/null | wc -l)
-  if [[ $VAL_FILES -eq 0 ]]; then
-    check "No validation test files (eval 3 has no validations)" "pass"
-  else
-    check "No validation test files (eval 3 has no validations)" "fail" "Found $VAL_FILES validation files"
-  fi
-
-  MOCK_FILES=$(find "$TESTS_DIR" -name "mock_*.tftest.hcl" -o -name "mock_*.tfmock.hcl" 2>/dev/null | wc -l)
-  if [[ $MOCK_FILES -eq 0 ]]; then
-    check "No mock test files (eval 3 has no data sources)" "pass"
-  else
-    check "No mock test files (eval 3 has no data sources)" "fail" "Found $MOCK_FILES mock files"
+    check "No data-source mocking (module has no data sources)" "fail" "override_data/mock_data found in $DS_MOCKS files"
   fi
 fi
 
@@ -140,20 +90,18 @@ echo ""
 echo "🔍 Anti-Pattern Detection"
 
 # Check: No computed attributes with command = plan
-# Look for plan blocks that assert on .id or .arn
 PLAN_COMPUTED=0
 for f in "$TESTS_DIR"/*.tftest.hcl; do
   [[ -f "$f" ]] || continue
-  # Extract plan blocks and check for .id/.arn in conditions
   if awk '/command\s*=\s*plan/,/^}/' "$f" | grep -qE 'condition.*\.(id|arn|self_link)\b'; then
     PLAN_COMPUTED=1
     warn "Possible computed attribute in plan block: $f"
   fi
 done
 if [[ $PLAN_COMPUTED -eq 0 ]]; then
-  check "No computed attributes (.id/.arn) tested with command = plan" "pass"
+  check "No computed attributes (.id/.arn/.self_link) tested with command = plan" "pass"
 else
-  check "No computed attributes (.id/.arn) tested with command = plan" "fail" "Found computed attrs in plan blocks"
+  check "No computed attributes (.id/.arn/.self_link) tested with command = plan" "fail" "Found computed attrs in plan blocks"
 fi
 
 # Check: No [0] on set-type attributes (security group ingress/egress)
@@ -164,119 +112,95 @@ else
   check "No [0] indexing on set-type attributes (ingress/egress)" "fail" "Found [0] indexing in $SET_INDEX files"
 fi
 
-# Check: All assert conditions on single line
-MULTILINE=0
-for f in "$TESTS_DIR"/*.tftest.hcl; do
-  [[ -f "$f" ]] || continue
-  # Check if condition spans multiple lines (condition = ... without closing on same line followed by continuation)
-  if awk '/condition\s*=/ { line=$0; if (!/error_message/ && !/}/) { getline next; if (next !~ /error_message/ && next !~ /^[[:space:]]*}/) print FILENAME": multi-line condition" } }' "$f" | grep -q .; then
-    MULTILINE=1
-  fi
-done
-if [[ $MULTILINE -eq 0 ]]; then
-  check "All assert conditions appear to be single-line" "pass"
+# Check: No top-level locals blocks in test files (terraform init rejects them)
+LOCALS_HITS=$(grep -rlE '^locals\s*\{' "$TESTS_DIR"/*.tftest.hcl 2>/dev/null | wc -l)
+if [[ $LOCALS_HITS -eq 0 ]]; then
+  check "No top-level locals {} blocks in .tftest.hcl files" "pass"
 else
-  check "All assert conditions appear to be single-line" "fail"
+  check "No top-level locals {} blocks in .tftest.hcl files" "fail" "locals blocks found in $LOCALS_HITS files — init will reject the suite"
 fi
 
-# ─── Mock Provider Checks ────────────────────────────────
+# ─── Mocking (functional) ────────────────────────────────
 echo ""
-echo "🔒 Mock Provider Checks"
+echo "🔒 Mock Provider (functional)"
 
-# Check unit tests have mock_provider defined
-for f in "$TESTS_DIR"/unit_*.tftest.hcl; do
-  [[ -f "$f" ]] || continue
-  BASENAME=$(basename "$f")
-  if grep -q 'mock_provider' "$f"; then
-    check "mock_provider defined in $BASENAME" "pass"
-  else
-    check "mock_provider defined in $BASENAME" "fail"
-  fi
+# At least one mock_provider must exist in the non-integration test files.
+# Aliased vs unaliased and override_data vs mock_data are both acceptable —
+# the execution check proves whether the mocking actually works.
+MOCKED=$(grep -rl 'mock_provider' "$TESTS_DIR" --include="*.tftest.hcl" 2>/dev/null | wc -l)
+if [[ $MOCKED -gt 0 ]]; then
+  check "mock_provider defined (any alias form)" "pass"
+else
+  check "mock_provider defined (any alias form)" "fail" "No mock_provider anywhere — unit tests would need real credentials"
+fi
 
-  # Check providers = { ... } in run blocks
-  if grep -q 'providers\s*=' "$f"; then
-    check "providers block referenced in $BASENAME" "pass"
-  else
-    check "providers block referenced in $BASENAME" "fail" "Run blocks must reference mock provider"
-  fi
-done
-
-# ─── Data Source Mocking (Eval 1 and 2) ───────────────────
+# ─── Documentation Correctness (conditional) ─────────────
 echo ""
-echo "📊 Data Source Mocking"
+echo "📄 Documentation Correctness"
 
-if [[ "$EVAL_NUM" == "1" ]]; then
-  # Check aws_availability_zones is mocked
-  AZ_MOCK=$(grep -rl 'aws_availability_zones' "$TESTS_DIR"/unit_*.tftest.hcl "$TESTS_DIR"/mock_*.tftest.hcl "$TESTS_DIR"/mock_*.tfmock.hcl 2>/dev/null | wc -l)
-  if [[ $AZ_MOCK -gt 0 ]]; then
-    check "data.aws_availability_zones.available is mocked" "pass"
+MD_FILES=$(find "$TESTS_DIR" -name "*.md" 2>/dev/null)
+if [[ -z "$MD_FILES" ]]; then
+  warn "No docs generated — positional-args/-cleanup checks skipped (docs are not required)"
+else
+  # Positional file args are silently ignored by terraform/tofu (whole suite runs).
+  # Exclude lines that quote the wrong form to warn against it.
+  POSITIONAL=$(grep -hE '(terraform|tofu) test +[^-][^ ]*\.tftest\.hcl' $MD_FILES 2>/dev/null \
+    | grep -ivE 'never|not |wrong|❌|avoid|instead' | head -3)
+  if [[ -z "$POSITIONAL" ]]; then
+    check "No positional test-file arguments in documented commands" "pass"
   else
-    check "data.aws_availability_zones.available is mocked" "fail"
+    check "No positional test-file arguments in documented commands" "fail" "$POSITIONAL"
   fi
 
-  # Check aws_ami is mocked
-  AMI_MOCK=$(grep -rl 'aws_ami' "$TESTS_DIR"/unit_*.tftest.hcl "$TESTS_DIR"/mock_*.tftest.hcl "$TESTS_DIR"/mock_*.tfmock.hcl 2>/dev/null | wc -l)
-  if [[ $AMI_MOCK -gt 0 ]]; then
-    check "data.aws_ami.al2023 is mocked" "pass"
+  # -cleanup does not exist in either tool. Prose saying "there is no -cleanup flag" is fine.
+  CLEANUP=$(grep -hE '(terraform|tofu) test.*-cleanup' $MD_FILES 2>/dev/null \
+    | grep -ivE 'no |not |never|does not|doesn.t|❌' | head -3)
+  if [[ -z "$CLEANUP" ]]; then
+    check "No -cleanup flag emitted in documented commands" "pass"
   else
-    check "data.aws_ami.al2023 is mocked" "fail"
-  fi
-
-elif [[ "$EVAL_NUM" == "2" ]]; then
-  # Check azurerm_client_config is mocked
-  CC_MOCK=$(grep -rl 'azurerm_client_config' "$TESTS_DIR"/*.tftest.hcl "$TESTS_DIR"/*.tfmock.hcl 2>/dev/null | wc -l)
-  if [[ $CC_MOCK -gt 0 ]]; then
-    check "data.azurerm_client_config.current is mocked" "pass"
-  else
-    check "data.azurerm_client_config.current is mocked" "fail"
-  fi
-
-  # Check UUID format in mocks
-  UUID_VALID=$(grep -rE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' "$TESTS_DIR"/*.tftest.hcl "$TESTS_DIR"/*.tfmock.hcl 2>/dev/null | wc -l)
-  if [[ $UUID_VALID -gt 0 ]]; then
-    check "Azure mock values use valid UUID format" "pass"
-  else
-    check "Azure mock values use valid UUID format" "fail"
+    check "No -cleanup flag emitted in documented commands" "fail" "$CLEANUP"
   fi
 fi
 
-# ─── README Content Checks ───────────────────────────────
+# ─── Execution Check ─────────────────────────────────────
+# The strongest signal: generated non-integration tests must actually pass
+# `terraform test` against the module. Grep checks can't catch parse errors,
+# unknown-value failures under plan, or missing mocks — execution does.
+# A file counts as integration if it is named integration_* OR contains a
+# command = apply run without any mock_provider/override_* (real-provider apply).
 echo ""
-echo "📄 README Content"
+echo "🚀 Execution Check"
 
-if [[ -f "$TESTS_DIR/README.md" ]]; then
-  # Check no -filter with wildcards
-  if grep -q '\-filter.*\*' "$TESTS_DIR/README.md"; then
-    check "README does NOT use -filter with wildcards" "fail" "Found -filter with wildcards"
+MODULE_DIR=$(cd "$(dirname "$TESTS_DIR")" && pwd)
+TESTS_BASENAME=$(basename "$TESTS_DIR")
+
+if ! command -v terraform >/dev/null 2>&1; then
+  warn "terraform not found on PATH — skipping execution check"
+else
+  FILTERS=()
+  for f in "$TESTS_DIR"/*.tftest.hcl; do
+    [[ -f "$f" ]] || continue
+    BASE=$(basename "$f")
+    [[ "$BASE" == integration_* ]] && continue
+    if grep -qE 'command\s*=\s*apply' "$f" && ! grep -qE 'mock_provider|override_(data|module|resource)' "$f"; then
+      continue  # real-provider apply — never execute in grading
+    fi
+    FILTERS+=("-filter=$TESTS_BASENAME/$BASE")
+  done
+
+  if [[ ${#FILTERS[@]} -eq 0 ]]; then
+    warn "No non-integration test files found — skipping execution check"
   else
-    check "README does NOT use -filter with wildcards" "pass"
-  fi
-
-  # Check cost warnings
-  if grep -qi 'cost\|real resource\|billing' "$TESTS_DIR/README.md"; then
-    check "README includes cost/safety warnings" "pass"
-  else
-    check "README includes cost/safety warnings" "fail"
-  fi
-
-  # Check tofu test mentioned
-  if grep -q 'tofu test' "$TESTS_DIR/README.md"; then
-    check "README shows tofu test commands" "pass"
-  else
-    check "README shows tofu test commands" "fail"
-  fi
-fi
-
-# ─── Variable Completeness Check ─────────────────────────
-echo ""
-echo "📝 Variable Completeness"
-
-# Check that test-safe values are used (eval 1)
-if [[ "$EVAL_NUM" == "1" ]]; then
-  if grep -rl 'environment.*=.*"test"' "$TESTS_DIR"/*.tftest.hcl 2>/dev/null | head -1 | grep -q .; then
-    check "Test-safe environment value used (test)" "pass"
-  else
-    warn "Could not verify test-safe environment value"
+    EXEC_LOG=$(mktemp)
+    if (cd "$MODULE_DIR" && terraform init -backend=false -input=false >/dev/null 2>&1 \
+        && terraform test "${FILTERS[@]}" >"$EXEC_LOG" 2>&1); then
+      SUMMARY=$(grep -Eo '[0-9]+ passed, [0-9]+ failed' "$EXEC_LOG" | tail -1)
+      check "Non-integration tests execute green (${SUMMARY:-passed})" "pass"
+    else
+      check "Non-integration tests execute green" "fail" "terraform test failed — last lines:"
+      tail -15 "$EXEC_LOG" | sed 's/^/         │ /'
+    fi
+    rm -f "$EXEC_LOG"
   fi
 fi
 

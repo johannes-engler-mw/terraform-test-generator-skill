@@ -89,7 +89,7 @@ In addition to `.id` and `.arn`-equivalent fields, GCP exposes a few more that c
 - `.number` — project number (vs `.project_id`)
 - `.member` — IAM principal identifiers
 
-Treat all of these as apply-only.
+Treat all of these as apply-only. That includes **values derived from them**: a bucket name interpolated as `"${var.prefix}-${data.google_project.current.number}"` inherits the computed-ness of `.number`. Don't assert on such a value under plain `command = plan` — either mock the data source with `override_data` in that same run (so the interpolation is fully known) or move the assertion to a mocked `command = apply` run.
 
 ## Naming and labeling quirks
 

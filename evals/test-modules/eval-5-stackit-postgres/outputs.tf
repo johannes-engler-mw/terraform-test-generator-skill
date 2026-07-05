@@ -4,8 +4,8 @@ output "bucket_name" {
 }
 
 output "bucket_url" {
-  description = "Bucket URL"
-  value       = stackit_objectstorage_bucket.data.url
+  description = "Bucket URL (path style)"
+  value       = stackit_objectstorage_bucket.data.url_path_style
 }
 
 output "postgres_instance_id" {

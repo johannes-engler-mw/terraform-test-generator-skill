@@ -48,22 +48,8 @@ run "test_outputs" {
   }
 }
 
-# Test: <Verify idempotency>
-run "first_apply" {
-  command = apply
-
-  variables {
-    environment = "test"
-    region      = "us-east-1"
-    # ... all required variables
-  }
-}
-
-run "verify_idempotent" {
-  command = plan
-
-  assert {
-    condition     = length(plan.resource_changes) == 0
-    error_message = "Configuration should be idempotent - no changes on second plan"
-  }
-}
+# Note on idempotency: the test framework has no built-in "empty plan" assertion —
+# there is no `plan` object to reference in assert conditions, so a second-apply
+# idempotency check cannot be expressed here. `terraform test` applies each run
+# once and destroys everything at the end; verify idempotency outside the test
+# framework (e.g. `terraform apply` twice in CI and diff the plan output).

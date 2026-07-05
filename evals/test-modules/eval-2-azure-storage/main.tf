@@ -38,6 +38,6 @@ resource "azurerm_storage_account" "main" {
 
 resource "azurerm_storage_container" "data" {
   name                  = "data"
-  storage_account_id    = azurerm_storage_account.main.id
+  storage_account_name  = azurerm_storage_account.main.name
   container_access_type = "private"
 }

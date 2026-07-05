@@ -4,7 +4,7 @@ This directory contains comprehensive test suites for the AWS infrastructure Ter
 
 ## Prerequisites
 
-- **Terraform >= 1.6.0** (native testing framework required)
+- **Terraform >= 1.7.0** or **OpenTofu >= 1.7.0** (native testing framework with mock providers)
 - **AWS CLI** configured with valid credentials
 - **Proper IAM permissions** for creating test resources
 
@@ -55,27 +55,31 @@ terraform test
 
 ### Run Specific Test Types
 
+⚠️ File selection must use `-filter=` — positional file arguments (`terraform test tests/unit_x.tftest.hcl`) are **silently ignored** by both tools and the entire suite runs, including the integration tests that create real resources.
+
 ```bash
 # Unit tests only (safe, fast, free)
-terraform test tests/unit_*.tftest.hcl
+terraform test -filter=tests/unit_networking.tftest.hcl -filter=tests/unit_security.tftest.hcl -filter=tests/unit_storage.tftest.hcl -filter=tests/unit_compute.tftest.hcl
 
 # Mock tests only (safe, free)
-terraform test tests/mock_*.tftest.hcl
+terraform test -filter=tests/mock_data_sources.tftest.hcl
 
 # Validation tests only (safe, free)
-terraform test tests/validation_*.tftest.hcl
+terraform test -filter=tests/validation_variable_rules.tftest.hcl -filter=tests/validation_preconditions.tftest.hcl
 
 # Compliance tests only (safe, free)
-terraform test tests/compliance_*.tftest.hcl
+terraform test -filter=tests/compliance_security.tftest.hcl -filter=tests/compliance_tagging.tftest.hcl
 
 # Integration tests (WARNING: creates real resources)
-terraform test tests/integration_*.tftest.hcl
+terraform test -filter=tests/integration_full_deployment.tftest.hcl
 ```
+
+(`tofu test` accepts the same flags. In a POSIX shell you can also expand a glob into repeated flags: `terraform test $(printf -- '-filter=%s ' tests/unit_*.tftest.hcl)`.)
 
 ### Run a Specific Test File
 
 ```bash
-terraform test tests/unit_networking.tftest.hcl
+terraform test -filter=tests/unit_networking.tftest.hcl
 ```
 
 ### Verbose Output
@@ -83,14 +87,6 @@ terraform test tests/unit_networking.tftest.hcl
 ```bash
 terraform test -verbose
 ```
-
-### Keep Resources After Test (for debugging)
-
-```bash
-terraform test -cleanup=false
-```
-
-⚠️ **Important**: Remember to manually destroy resources if using `-cleanup=false`!
 
 ## ⚠️ Cost & Safety Considerations
 
@@ -135,31 +131,22 @@ Integration tests use `command = apply` and will:
 - Run unit/mock/validation/compliance tests regularly (they're FREE)
 - Run integration tests before major deployments only
 - Verify resources are cleaned up after each test
-- Use `terraform test tests/{unit,mock,validation,compliance}_*.tftest.hcl` for regular testing
+- Run every non-integration file for regular testing (repeat `-filter` per file, as shown above)
 
 ❌ **DON'T**:
 - Run integration tests in production AWS accounts
-- Leave integration tests running with `-cleanup=false`
+- Assume cleanup succeeded — verify resources are gone after a failed run
 - Use production variable values in integration tests
 - Run integration tests frequently (costs add up)
 
 ### Cleanup Failed Tests
 
-If a test fails and resources aren't cleaned up:
+If a test fails and resources aren't cleaned up, `terraform test` prints the resources it left behind and writes their state to files whose paths appear in the error output. Follow those instructions, or delete manually via the AWS Console:
 
-```bash
-# Navigate to the test directory
-cd tests
-
-# Manually destroy resources (if test state exists)
-terraform destroy
-
-# Or use AWS Console to manually delete:
-# - VPC and associated resources
-# - S3 buckets (must be empty first)
-# - KMS keys (scheduled for deletion)
-# - EC2 instances
-```
+- VPC and associated resources
+- S3 buckets (must be empty first)
+- KMS keys (scheduled for deletion)
+- EC2 instances
 
 ## Test Coverage Summary
 
@@ -190,16 +177,16 @@ test:
 
     # Safe tests (free, no AWS credentials needed)
     - name: Run unit tests
-      run: terraform test tests/unit_*.tftest.hcl
+      run: terraform test -filter=tests/unit_networking.tftest.hcl -filter=tests/unit_security.tftest.hcl -filter=tests/unit_storage.tftest.hcl -filter=tests/unit_compute.tftest.hcl
 
     - name: Run mock tests
-      run: terraform test tests/mock_*.tftest.hcl
+      run: terraform test -filter=tests/mock_data_sources.tftest.hcl
 
     - name: Run validation tests
-      run: terraform test tests/validation_*.tftest.hcl
+      run: terraform test -filter=tests/validation_variable_rules.tftest.hcl -filter=tests/validation_preconditions.tftest.hcl
 
     - name: Run compliance tests
-      run: terraform test tests/compliance_*.tftest.hcl
+      run: terraform test -filter=tests/compliance_security.tftest.hcl -filter=tests/compliance_tagging.tftest.hcl
 
     # Integration tests (optional, requires AWS credentials)
     - name: Configure AWS Credentials
@@ -211,7 +198,7 @@ test:
 
     - name: Run integration tests
       if: github.ref == 'refs/heads/main'
-      run: terraform test tests/integration_*.tftest.hcl
+      run: terraform test -filter=tests/integration_full_deployment.tftest.hcl
 ```
 
 ## Troubleshooting
