@@ -63,3 +63,6 @@ __pycache__/
 *.zip
 *.tar.gz
 *.tgz
+
+# Terraform Plugin cache
+.tf-plugin-cache
